@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+artifacts/
+
+.runtime/
+# Cached model replies contain chat content.
+.cache/
+# Playwright output
+test-results/
+playwright-report/
