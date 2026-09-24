@@ -23,6 +23,8 @@ export type RequestLimits = {
   /** Messages and characters of one trend period. */
   periodMessages: number;
   periodChars: number;
+  /** Line-by-line requests in flight at once. */
+  workers: number;
 };
 export const CHAT_LIMITS: RequestLimits = {
   provider: "openai",
@@ -33,6 +35,7 @@ export const CHAT_LIMITS: RequestLimits = {
   batch: BATCH_SIZE,
   periodMessages: 900,
   periodChars: 25000,
+  workers: 9,
 };
 // The original project's limits for Jev: 500 messages or 12,000 characters.
 export const JEV_LIMITS: RequestLimits = {
@@ -44,6 +47,8 @@ export const JEV_LIMITS: RequestLimits = {
   batch: 10,
   periodMessages: 500,
   periodChars: 12000,
+  // The original project's concurrency: Jev platforms rate-limit bursts.
+  workers: 2,
 };
 /**
  * The limits in force. The page switches them when the model changes; the
@@ -53,10 +58,21 @@ export const requestLimits: RequestLimits = { ...CHAT_LIMITS };
 export function setRequestLimits(limits: RequestLimits) {
   Object.assign(requestLimits, limits);
 }
-/** Whether the whole chat is too long for one request under the current limits. */
+/**
+ * What the overview itself may read: the rest of the request is headroom for
+ * the originals of remembered events, a quarter of it and at most 5,000 chars.
+ */
+export function overviewBudget() {
+  return {
+    count: requestLimits.messages - 50,
+    chars: requestLimits.chars - Math.min(5000, requestLimits.chars / 4),
+  };
+}
+/** Whether the overview cannot read the whole chat, so it is sent in pieces. */
 export function overLimit(texts: string[]) {
+  const budget = overviewBudget();
   return (
-    texts.length > requestLimits.messages ||
-    texts.reduce((n, t) => n + Array.from(t).length, 0) > requestLimits.chars
+    texts.length > budget.count ||
+    texts.reduce((n, t) => n + Array.from(t).length, 0) > budget.chars
   );
 }

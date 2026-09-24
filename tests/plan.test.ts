@@ -186,3 +186,29 @@ test("选 Jev 时长聊天分批：每次请求不超过 500 条 / 12,000 字，
   }
   assert.ok(!overLimit(long.map((m) => m.text)));
 });
+
+test("整体判断读不完整段聊天时一定提示分批，不会悄悄截断", () => {
+  // 10,000 characters: under Jev's 12,000, but over what the overview reads.
+  // 440 messages of 23 characters: 10,120 in all, and under the 450-message cap.
+  const mid: Message[] = Array.from({ length: 440 }, (_, i) => ({
+    id: `M${i}`,
+    sender: i % 2 ? "self" : "other",
+    text: `第${String(i).padStart(3, "0")}句，二十个字的聊天内容呀呀呀呀呀呀呀呀`,
+    timestamp: day(1 + Math.floor(i / 50)),
+    kind: "text",
+  }));
+  setRequestLimits(JEV_LIMITS);
+  try {
+    const p = planRun(mid, "crush", "", { level: "quick", days: null }, empty);
+    const overview = plannedRequests(mid, "crush", "", p)[0];
+    assert.equal(
+      mid.reduce((n, m) => n + Array.from(m.text).length, 0),
+      10120,
+    );
+    const read = overview.messages.length < mid.length;
+    assert.equal(overLimit(mid.map((m) => m.text)), read);
+    assert.ok(read);
+  } finally {
+    setRequestLimits(CHAT_LIMITS);
+  }
+});

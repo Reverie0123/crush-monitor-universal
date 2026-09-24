@@ -29,8 +29,6 @@ import {
 } from "../shared/types";
 import type { SavedConversation, Trend } from "./storage";
 import { overLimit, requestLimits } from "../shared/limits";
-// Parallel per-line jobs; the server allows 12 in flight.
-const WORKERS = 9;
 type Progress = {
   done: number;
   total: number;
@@ -375,7 +373,8 @@ export function useAnalysis() {
         else await safely(job);
       }
     }
-    await Promise.all(Array.from({ length: WORKERS }, worker));
+    // Parallel per-line jobs (the server allows 12 in flight); fewer for Jev.
+    await Promise.all(Array.from({ length: requestLimits.workers }, worker));
     if (rev.current !== revision) return true;
     const final = await safely(
       overviewJob(messages, relation, revision, savedEvents.current),
@@ -416,7 +415,12 @@ export function useAnalysis() {
           }
         }
       }
-      await Promise.all([periodWorker(), periodWorker(), periodWorker()]);
+      await Promise.all(
+        Array.from(
+          { length: Math.min(3, requestLimits.workers) },
+          periodWorker,
+        ),
+      );
       if (rev.current !== revision) return true;
       savedPeriods.current = out.filter((p): p is Period => !!p);
       setPeriods(savedPeriods.current);

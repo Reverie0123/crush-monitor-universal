@@ -1,5 +1,5 @@
 import { boundedContext, relevantEvents, type MemoryEvent } from "./memory";
-import { requestLimits as limits } from "./limits";
+import { overviewBudget, requestLimits as limits } from "./limits";
 import type { Message, Relation, LineResult, AnalysisRequest } from "./types";
 export function incrementalJobs(
   messages: Message[],
@@ -133,11 +133,7 @@ export function overviewJob(
       messages.length,
       events,
       false,
-      {
-        count: limits.messages - 50,
-        // Headroom for event originals: a quarter of the budget, at most 5,000.
-        chars: limits.chars - Math.min(5000, limits.chars / 4),
-      },
+      overviewBudget(),
     ),
   };
 }
