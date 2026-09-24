@@ -43,7 +43,7 @@ npm run build
 npm start
 ```
 
-Open **http://127.0.0.1:3178/**, click the settings icon at the bottom left, paste your API key under **模型与接口** (Model & API), then **保存并测试连接** (Save & test). Leave the terminal running. On Windows you can also double-click `启动.bat`.
+Open [http://127.0.0.1:3178/](http://127.0.0.1:3178/), click the settings icon at the bottom left, paste your API key under **模型与接口** (Model & API), then **保存并测试连接** (Save & test). Leave the terminal running. On Windows you can also double-click `启动.bat`.
 
 ## Usage
 
