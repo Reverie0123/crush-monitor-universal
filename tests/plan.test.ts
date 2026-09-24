@@ -9,6 +9,12 @@ import {
 } from "../shared/request";
 import type { Message } from "../shared/types";
 import { learnEstimateFactor } from "../src/cost";
+import {
+  CHAT_LIMITS,
+  JEV_LIMITS,
+  overLimit,
+  setRequestLimits,
+} from "../shared/limits";
 
 const day = (d: number) => `2026-08-${String(d).padStart(2, "0")} 20:00:00`;
 // Ten days of chat, four messages a day, alternating speakers.
@@ -139,4 +145,37 @@ test("用户对某条消息的纠正会随请求发给模型", () => {
   assert.equal(job.note, "高中同学");
   const state = buildRequest(job).state as { userCorrections?: unknown[] };
   assert.equal(state.userCorrections?.length, 1);
+});
+
+test("选 Jev 时长聊天分批：每次请求不超过 500 条 / 12,000 字，逐句覆盖全部", () => {
+  // 1,200 messages of 20 characters: 24,000 characters in all.
+  const long: Message[] = Array.from({ length: 1200 }, (_, i) => ({
+    id: `L${i}`,
+    sender: i % 2 ? "self" : "other",
+    text: `第${String(i).padStart(4, "0")}句聊天内容，凑够二十个字啊`,
+    timestamp: day(1 + Math.floor(i / 50)),
+    kind: "text",
+  }));
+  setRequestLimits(JEV_LIMITS);
+  try {
+    assert.ok(overLimit(long.map((m) => m.text)));
+    const p = planRun(long, "crush", "", { level: "full", days: null }, empty);
+    const requests = plannedRequests(long, "crush", "", p);
+    for (const r of requests) {
+      assert.ok(r.messages.length <= 500, `${r.messages.length} 条`);
+      const chars = r.messages.reduce(
+        (n, m) => n + Array.from(m.text).length,
+        0,
+      );
+      assert.ok(chars <= 12000, `${chars} 字`);
+      assert.ok(r.targetIds.length <= 10);
+    }
+    // Every message is still analyzed, just in more requests.
+    assert.equal(p.lineCount, 1200);
+    // The overview reads the most recent part.
+    assert.equal(requests[0].messages.at(-1)!.id, "L1199");
+  } finally {
+    setRequestLimits(CHAT_LIMITS);
+  }
+  assert.ok(!overLimit(long.map((m) => m.text)));
 });

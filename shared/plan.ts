@@ -1,6 +1,7 @@
 // Decides what an analysis run will send. Used both to run and to estimate cost,
 // so the estimate always describes exactly what would happen.
 import { incrementalJobs, overviewJob } from "./incremental";
+import { requestLimits } from "./limits";
 import { boundedContext, type MemoryEvent } from "./memory";
 import { parseTime, periods as splitPeriods } from "./context";
 import type {
@@ -90,7 +91,10 @@ export function periodJob(
       g.end + 1,
       events,
       true,
-      { count: 900, chars: 25000 },
+      {
+        count: requestLimits.periodMessages,
+        chars: requestLimits.periodChars,
+      },
     ),
   };
 }

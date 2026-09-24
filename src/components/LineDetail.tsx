@@ -14,6 +14,7 @@ export function LineDetail({
   m,
   result,
   configured,
+  canSuggest,
   suggesting,
   suggestError,
   reconsidering,
@@ -25,6 +26,8 @@ export function LineDetail({
   m: Message;
   result?: LineResult;
   configured: boolean;
+  /** False in Jev-only mode, which writes no rewrites. */
+  canSuggest: boolean;
   suggesting: boolean;
   suggestError: string;
   reconsidering: boolean;
@@ -114,18 +117,25 @@ export function LineDetail({
                   ))}
                 </>
               ) : null}
-              <button
-                className="secondary"
-                disabled={suggesting || !configured}
-                onClick={onSuggest}
-              >
-                <Sparkles size={15} />
-                {suggesting
-                  ? "正在想…"
-                  : result.suggestions?.length
-                    ? "再换两种说法"
-                    : "这句可以怎么说更好？"}
-              </button>
+              {canSuggest ? (
+                <button
+                  className="secondary"
+                  disabled={suggesting || !configured}
+                  onClick={onSuggest}
+                >
+                  <Sparkles size={15} />
+                  {suggesting
+                    ? "正在想…"
+                    : result.suggestions?.length
+                      ? "再换两种说法"
+                      : "这句可以怎么说更好？"}
+                </button>
+              ) : (
+                <p className="settings-note">
+                  当前是「仅 Jev」模式，没有回复建议；可在设置里改成「Jev +
+                  DeepSeek / OpenAI」。
+                </p>
+              )}
               {suggestError && !suggesting && (
                 <p className="error">{suggestError}</p>
               )}

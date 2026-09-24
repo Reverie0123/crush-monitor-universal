@@ -8,6 +8,10 @@ export type PublicConfig = {
   keyHint: string;
   jevPlatform: "typesafe" | "openrouter" | "vercel";
   jevKeyHint: string;
+  /** With Jev: whether the chat model also writes reply suggestions. */
+  jevSuggest: boolean;
+  /** Whether reply suggestions are available with the saved settings. */
+  suggest: boolean;
   model: string;
   baseURL: string;
   effort: string;
@@ -58,6 +62,7 @@ export function ModelSettings({
   const [saved, setSaved] = useState<PublicConfig | null>(null);
   const [form, setForm] = useState<PublicConfig | null>(null);
   const [apiKey, setApiKey] = useState("");
+  const [jevKey, setJevKey] = useState("");
   const [prices, setPrices] = useState<Prices>(loadPrices);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
@@ -78,8 +83,6 @@ export function ModelSettings({
   const jev = form.provider === "jev";
   const platform =
     JEV_PLATFORMS.find((p) => p.key === form.jevPlatform) ?? JEV_PLATFORMS[0];
-  // The key box edits the selected service's key; each keeps its own.
-  const savedHint = jev ? saved?.jevKeyHint : saved?.keyHint;
 
   async function save(test = false) {
     setBusy(true);
@@ -92,8 +95,10 @@ export function ModelSettings({
         },
         body: JSON.stringify({
           ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
+          ...(jevKey.trim() ? { jevApiKey: jevKey.trim() } : {}),
           provider: form!.provider,
           jevPlatform: form!.jevPlatform,
+          jevSuggest: form!.jevSuggest,
           model: form!.model,
           baseURL: form!.baseURL,
           effort: form!.effort,
@@ -108,6 +113,7 @@ export function ModelSettings({
       setSaved(body);
       setForm(body);
       setApiKey("");
+      setJevKey("");
       savePrices(prices);
       onSaved?.(body);
       if (!test) {
@@ -134,24 +140,99 @@ export function ModelSettings({
     setStatus("已清除本地缓存的分析结果");
   }
 
+  // The chat model's settings: the analysis model in DeepSeek / OpenAI mode,
+  // and the reply-suggestion model in Jev + chat mode.
+  const chatFields = (
+    <>
+      <div className="preset-row">
+        {PRESETS.map((p) => (
+          <button
+            key={p.label}
+            className={form.baseURL === p.baseURL ? "selected" : ""}
+            onClick={() =>
+              set({ baseURL: p.baseURL, model: p.model, effort: p.effort })
+            }
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+      <label className="field">
+        {jev ? "回复建议用的 API Key（DeepSeek / OpenAI）" : "API Key"}
+        <input
+          type="password"
+          autoComplete="off"
+          value={apiKey}
+          placeholder={
+            saved?.keyHint
+              ? `已设置（${saved.keyHint}），留空则不修改`
+              : "粘贴你的 API Key"
+          }
+          onChange={(e) => setApiKey(e.target.value)}
+        />
+      </label>
+      <label className="field">
+        接口地址
+        <input
+          value={form.baseURL}
+          onChange={(e) => set({ baseURL: e.target.value })}
+        />
+      </label>
+      <div className="field-row">
+        <label className="field">
+          模型
+          <input
+            value={form.model}
+            onChange={(e) => set({ model: e.target.value })}
+          />
+        </label>
+        <label className="field">
+          推理强度
+          <select
+            value={form.effort}
+            onChange={(e) => set({ effort: e.target.value })}
+          >
+            <option value="">不设置（DeepSeek 选这个）</option>
+            <option value="minimal">minimal</option>
+            <option value="low">low</option>
+            <option value="medium">medium</option>
+            <option value="high">high</option>
+          </select>
+        </label>
+      </div>
+      {!jev && (
+        <label className="field">
+          随机度（temperature，留空用默认；越低结果越稳定）
+          <input
+            type="number"
+            min={0}
+            max={2}
+            step={0.1}
+            value={form.temperature ?? ""}
+            onChange={(e) =>
+              set({
+                temperature:
+                  e.target.value === "" ? null : Number(e.target.value),
+              })
+            }
+          />
+        </label>
+      )}
+    </>
+  );
+
   return (
     <div className="model-settings">
       <div className="preset-row" role="group" aria-label="分析用的模型">
         <button
-          className={form.provider === "openai" ? "selected" : ""}
-          onClick={() => {
-            set({ provider: "openai" });
-            setApiKey("");
-          }}
+          className={!jev ? "selected" : ""}
+          onClick={() => set({ provider: "openai" })}
         >
           DeepSeek / OpenAI
         </button>
         <button
-          className={form.provider === "jev" ? "selected" : ""}
-          onClick={() => {
-            set({ provider: "jev" });
-            setApiKey("");
-          }}
+          className={jev ? "selected" : ""}
+          onClick={() => set({ provider: "jev" })}
         >
           Jev（原版模型）
         </button>
@@ -181,88 +262,47 @@ export function ModelSettings({
               {platform.label}
             </a>{" "}
             申请 Key。Jev 是原作者使用的 TypeSafe
-            判断模型，给出的概率经过专门校准，但不写判断理由；「回复建议」仍需要
-            DeepSeek / OpenAI 的 Key。Jev
+            判断模型，给出的概率经过专门校准，但不写判断理由。一次最多读 500 条
+            / 12,000 字，更长的聊天会自动分批上传。Jev
             按平台规则计费，下面的单价估算仅供参考。
           </p>
+          <label className="field">
+            {platform.label} API Key
+            <input
+              type="password"
+              autoComplete="off"
+              value={jevKey}
+              placeholder={
+                saved?.jevKeyHint
+                  ? `已设置（${saved.jevKeyHint}），留空则不修改`
+                  : "粘贴你的 API Key"
+              }
+              onChange={(e) => setJevKey(e.target.value)}
+            />
+          </label>
+          <div className="preset-row" role="group" aria-label="回复建议">
+            <button
+              className={!form.jevSuggest ? "selected" : ""}
+              onClick={() => set({ jevSuggest: false })}
+            >
+              仅 Jev
+            </button>
+            <button
+              className={form.jevSuggest ? "selected" : ""}
+              onClick={() => set({ jevSuggest: true })}
+            >
+              Jev + DeepSeek / OpenAI
+            </button>
+          </div>
+          <p className="settings-note">
+            {form.jevSuggest
+              ? "分析用 Jev；「这句可以怎么说更好」的回复建议由下面的模型来写。"
+              : "只用 Jev 分析，不提供回复建议（Jev 只会打分，不会写句子）。"}
+          </p>
+          {form.jevSuggest && chatFields}
         </>
       ) : (
-        <div className="preset-row">
-          {PRESETS.map((p) => (
-            <button
-              key={p.label}
-              className={form.baseURL === p.baseURL ? "selected" : ""}
-              onClick={() =>
-                set({ baseURL: p.baseURL, model: p.model, effort: p.effort })
-              }
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-      )}
-      <label className="field">
-        {jev ? `${platform.label} API Key` : "API Key"}
-        <input
-          type="password"
-          autoComplete="off"
-          value={apiKey}
-          placeholder={
-            savedHint
-              ? `已设置（${savedHint}），留空则不修改`
-              : "粘贴你的 API Key"
-          }
-          onChange={(e) => setApiKey(e.target.value)}
-        />
-      </label>
-      {!jev && (
-        <>
-          <label className="field">
-            接口地址
-            <input
-              value={form.baseURL}
-              onChange={(e) => set({ baseURL: e.target.value })}
-            />
-          </label>
-          <div className="field-row">
-            <label className="field">
-              模型
-              <input
-                value={form.model}
-                onChange={(e) => set({ model: e.target.value })}
-              />
-            </label>
-            <label className="field">
-              推理强度
-              <select
-                value={form.effort}
-                onChange={(e) => set({ effort: e.target.value })}
-              >
-                <option value="">不设置（DeepSeek 选这个）</option>
-                <option value="minimal">minimal</option>
-                <option value="low">low</option>
-                <option value="medium">medium</option>
-                <option value="high">high</option>
-              </select>
-            </label>
-          </div>
-          <label className="field">
-            随机度（temperature，留空用默认；越低结果越稳定）
-            <input
-              type="number"
-              min={0}
-              max={2}
-              step={0.1}
-              value={form.temperature ?? ""}
-              onChange={(e) =>
-                set({
-                  temperature:
-                    e.target.value === "" ? null : Number(e.target.value),
-                })
-              }
-            />
-          </label>
-        </>
+        chatFields
       )}
       <label className="check">
         <input

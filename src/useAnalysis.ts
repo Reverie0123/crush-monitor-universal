@@ -28,9 +28,28 @@ import {
   type Period,
 } from "../shared/types";
 import type { SavedConversation, Trend } from "./storage";
-import { LINE_CONTEXT_MESSAGES } from "../shared/limits";
+import { overLimit, requestLimits } from "../shared/limits";
 // Parallel per-line jobs; the server allows 12 in flight.
 const WORKERS = 9;
+type Progress = {
+  done: number;
+  total: number;
+  startedAt: number;
+  /** The chat exceeds one request's limit and is sent in pieces. */
+  batched: boolean;
+  /** 1-based positions of the messages in the request being sent. */
+  range: [number, number] | null;
+  /** Messages in the chat being analyzed. */
+  count: number;
+};
+const IDLE: Progress = {
+  done: 0,
+  total: 0,
+  startedAt: 0,
+  batched: false,
+  range: null,
+  count: 0,
+};
 export type UsageTotal = {
   input: number;
   output: number;
@@ -77,7 +96,7 @@ export function useAnalysis() {
       "idle",
     ),
     [error, setError] = useState(""),
-    [progress, setProgress] = useState({ done: 0, total: 0, startedAt: 0 }),
+    [progress, setProgress] = useState<Progress>(IDLE),
     [latency, setLatency] = useState(0),
     [analyzedCount, setAnalyzedCount] = useState(0),
     [usage, setUsage] = useState<UsageTotal>(NO_USAGE),
@@ -283,10 +302,22 @@ export function useAnalysis() {
     }
     const pendingPeriods = plan.periods.filter((p) => !p.reuse).length;
     let failed = 0;
+    // A chat too long for one request goes out in pieces; say which piece.
+    const batched = overLimit(messages.map((m) => m.text));
+    const position = new Map(messages.map((m, i) => [m.id, i]));
+    const show = (job: AnalysisRequest) => {
+      if (!batched || rev.current !== revision || !job.messages.length) return;
+      const from = (position.get(job.messages[0].id) ?? 0) + 1;
+      const to = (position.get(job.messages.at(-1)!.id) ?? 0) + 1;
+      setProgress((p) => ({ ...p, range: [from, to] }));
+    };
     setProgress({
       done: 0,
       total: jobs.length + (jobs.length ? 2 : 1) + pendingPeriods,
       startedAt: Date.now(),
+      batched,
+      range: null,
+      count: messages.length,
     });
     const tick = () => {
       if (rev.current === revision)
@@ -295,6 +326,7 @@ export function useAnalysis() {
     const finish = (job: AnalysisRequest) =>
       finishJob(job, note.current, savedCorrections.current);
     async function safely(job: AnalysisRequest) {
+      show(job);
       try {
         const data = await send(finish(job), ctrl.signal);
         if (rev.current !== revision) return;
@@ -326,7 +358,7 @@ export function useAnalysis() {
           lastTarget = Math.max(...positions);
         const revised = boundedContext(
           messages,
-          Math.max(0, firstTarget - LINE_CONTEXT_MESSAGES),
+          Math.max(0, firstTarget - requestLimits.lineContext),
           job.task === "self_message"
             ? lastTarget + 1
             : Math.min(messages.length, lastTarget + 21),
@@ -358,12 +390,15 @@ export function useAnalysis() {
           const i = todo.shift()!,
             g = plan.periods[i];
           try {
-            const data = await send(
-              finish(
-                periodJob(messages, g, relation, revision, savedEvents.current),
-              ),
-              ctrl.signal,
+            const job = periodJob(
+              messages,
+              g,
+              relation,
+              revision,
+              savedEvents.current,
             );
+            show(job);
+            const data = await send(finish(job), ctrl.signal);
             if (data.overview)
               out[i] = {
                 label: g.label,
@@ -414,6 +449,7 @@ export function useAnalysis() {
     if (!p.needed) return null;
     return {
       lines: p.lineCount,
+      batched: overLimit(messages.map((m) => m.text)),
       estimate: estimateJobs(
         plannedRequests(messages, relation, note.current, p),
       ),
@@ -438,7 +474,7 @@ export function useAnalysis() {
         relation,
         ...boundedContext(
           messages,
-          Math.max(0, i - LINE_CONTEXT_MESSAGES),
+          Math.max(0, i - requestLimits.lineContext),
           self ? i + 1 : Math.min(messages.length, i + 21),
           savedEvents.current,
           self,
@@ -507,7 +543,7 @@ export function useAnalysis() {
       .filter((j): j is AnalysisRequest => !!j);
     if (!jobs.length) return;
     setStatus("loading");
-    setProgress({ done: 0, total: jobs.length, startedAt: Date.now() });
+    setProgress({ ...IDLE, total: jobs.length, startedAt: Date.now() });
     setRetrying(ids);
     setError("");
     let failed = false;

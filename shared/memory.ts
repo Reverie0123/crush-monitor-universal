@@ -1,11 +1,5 @@
 import type { Message, LineResult, AnalysisRequest } from "./types";
-import {
-  BATCH_SIZE,
-  LINE_CONTEXT_CHARS,
-  LINE_CONTEXT_MESSAGES,
-  MAX_MESSAGES,
-  MAX_TEXT_CHARS,
-} from "./limits";
+import { requestLimits as limits } from "./limits";
 export const EVENT_KINDS = {
   boundary:
     "明确提出保持距离、只做朋友、拒绝追求或停止联系的边界，不是暂时忙碌",
@@ -114,8 +108,8 @@ export function boundedContext(
   events: Record<string, MemoryEvent> = {},
   causal = false,
   budget = {
-    count: LINE_CONTEXT_MESSAGES + BATCH_SIZE + 20,
-    chars: LINE_CONTEXT_CHARS,
+    count: limits.lineContext + limits.batch + 20,
+    chars: limits.lineChars,
   },
 ) {
   // Recent originals get priority; historical originals share the same hard request budget.
@@ -154,8 +148,8 @@ export function boundedContext(
       .filter((m) => !included.has(m.id));
     const extraChars = extra.reduce((n, m) => n + Array.from(m.text).length, 0);
     if (
-      chars + extraChars > MAX_TEXT_CHARS ||
-      included.size + extra.length > MAX_MESSAGES
+      chars + extraChars > limits.chars ||
+      included.size + extra.length > limits.messages
     )
       continue;
     for (const m of extra) included.set(m.id, m);

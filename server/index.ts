@@ -200,11 +200,11 @@ app.post("/api/suggest", async (req, res) => {
     return;
   }
   // Jev only scores; rewriting a reply needs a chat model.
-  if (!config().openaiKey) {
+  if (!config().suggest) {
     res.status(503).json({
       error:
         config().provider === "jev"
-          ? "Jev 只能打分，写回复建议还需要 DeepSeek / OpenAI 的 Key，请在设置里填写"
+          ? "当前是「仅 Jev」模式，没有回复建议。需要的话在设置里改成「Jev + DeepSeek / OpenAI」并填写 Key"
           : "还没有设置 API Key，请点左下角设置填写",
     });
     return;

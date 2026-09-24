@@ -34,7 +34,13 @@ import { SpendModal } from "./components/SpendModal";
 import { ImportModal, OverlapModal } from "./components/ImportModal";
 import { SearchModal } from "./components/SearchModal";
 import { replyRating } from "../shared/ratings";
-import { MAX_TEXT_CHARS } from "../shared/limits";
+import {
+  CHAT_LIMITS,
+  JEV_LIMITS,
+  MAX_TEXT_CHARS,
+  setRequestLimits,
+} from "../shared/limits";
+import type { PublicConfig } from "./ModelSettings";
 import {
   mergeMessages,
   parseChat,
@@ -85,6 +91,8 @@ export default function App() {
   const [note, setNote] = useState(""),
     [noteDraft, setNoteDraft] = useState(""),
     [configured, setConfigured] = useState(true),
+    [provider, setProvider] = useState<PublicConfig["provider"]>("openai"),
+    [canSuggest, setCanSuggest] = useState(true),
     [highlight, setHighlight] = useState<string | null>(null),
     [suggesting, setSuggesting] = useState<string | null>(null),
     [suggestError, setSuggestError] = useState<{
@@ -92,10 +100,17 @@ export default function App() {
       message: string;
     } | null>(null);
 
+  function applyConfig(c: PublicConfig) {
+    // Set before the state change so the re-render plans with the new limits.
+    setRequestLimits(c.provider === "jev" ? JEV_LIMITS : CHAT_LIMITS);
+    setProvider(c.provider);
+    setConfigured(!!c.configured);
+    setCanSuggest(!!c.suggest);
+  }
   useEffect(() => {
     apiFetch("/api/config")
       .then((r) => r.json())
-      .then((c) => setConfigured(!!c.configured))
+      .then(applyConfig)
       .catch(() => {});
   }, []);
 
@@ -292,6 +307,8 @@ export default function App() {
       messages,
       relation,
       note,
+      // Jev splits long chats into more, smaller requests.
+      provider,
       a.lines,
       a.status,
       a.periods,
@@ -666,7 +683,7 @@ export default function App() {
           avatars={avatars}
           updateAvatars={updateAvatars}
           configured={configured}
-          setConfigured={setConfigured}
+          onConfig={applyConfig}
           on={{
             swap,
             // Same confirmation as the header's 新聊天 button.
@@ -758,6 +775,7 @@ export default function App() {
           m={chosen}
           result={a.lines[chosen.id]}
           configured={configured}
+          canSuggest={canSuggest}
           suggesting={suggesting === chosen.id}
           suggestError={
             suggestError?.id === chosen.id ? suggestError.message : ""

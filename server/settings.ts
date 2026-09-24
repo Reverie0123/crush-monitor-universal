@@ -23,6 +23,8 @@ export function publicConfig() {
     keyHint: hint(c.openaiKey),
     jevPlatform: c.jev.platform,
     jevKeyHint: hint(c.jev.apiKey),
+    jevSuggest: process.env.JEV_SUGGEST?.trim() === "on",
+    suggest: c.suggest,
     model: c.openaiModel,
     baseURL: c.baseURL,
     effort: c.effort,
@@ -39,6 +41,8 @@ const plain = /^[^\s"'`]*$/;
 export const settingsSchema = z.object({
   provider: z.enum(["openai", "jev"]).optional(),
   jevPlatform: z.enum(JEV_PLATFORM_KEYS).optional(),
+  jevSuggest: z.boolean().optional(),
+  jevApiKey: z.string().trim().max(300).regex(plain).optional(),
   apiKey: z.string().trim().max(300).regex(plain).optional(),
   model: z
     .string()
@@ -63,14 +67,14 @@ function quote(v: string) {
 
 export async function updateConfig(patch: z.infer<typeof settingsSchema>) {
   const values: Record<string, string> = {};
-  const provider = patch.provider ?? config().provider;
   if (patch.provider !== undefined) values.LLM_PROVIDER = patch.provider;
   if (patch.jevPlatform !== undefined) values.JEV_PLATFORM = patch.jevPlatform;
+  if (patch.jevSuggest !== undefined)
+    values.JEV_SUGGEST = patch.jevSuggest ? "on" : "off";
   // A blank key field means "keep the current key", so it can't be erased by
   // accident. Each service keeps its own key, so switching back loses nothing.
-  if (patch.apiKey?.trim())
-    values[provider === "jev" ? "JEV_API_KEY" : "OPENAI_API_KEY"] =
-      patch.apiKey.trim();
+  if (patch.apiKey?.trim()) values.OPENAI_API_KEY = patch.apiKey.trim();
+  if (patch.jevApiKey?.trim()) values.JEV_API_KEY = patch.jevApiKey.trim();
   if (patch.model !== undefined) values.OPENAI_MODEL = patch.model;
   if (patch.baseURL !== undefined)
     values.OPENAI_BASE_URL = patch.baseURL.replace(/\/+$/, "");

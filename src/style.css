@@ -549,6 +549,14 @@ h2 {
   color: #7a817c;
   font-size: 11px;
 }
+.analysis-status .batch-note {
+  flex-basis: 100%;
+  color: #9a6b1f;
+}
+.analysis-status:has(.batch-note) {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
 .analysis-status button {
   font-size: 11px;
   padding: 2px 5px;

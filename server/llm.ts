@@ -58,8 +58,12 @@ export function config() {
     apiKey: env.JEV_API_KEY?.trim() ?? "",
   };
   const provider = env.LLM_PROVIDER?.trim() === "jev" ? "jev" : "openai";
+  // With Jev, reply suggestions come from the chat model only if asked for.
+  const suggest =
+    !!openaiKey && (provider === "openai" || env.JEV_SUGGEST?.trim() === "on");
   return {
     provider,
+    suggest,
     /** Key and model of whichever service runs the analysis. */
     apiKey: provider === "jev" ? jev.apiKey : openaiKey,
     model: provider === "jev" ? jev.model : openaiModel,

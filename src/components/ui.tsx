@@ -5,10 +5,13 @@ export function Modal({
   title,
   children,
   close,
+  closable = true,
 }: {
   title: string;
   children: ReactNode;
   close: () => void;
+  /** False hides the close button, for dialogs that must be answered. */
+  closable?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -52,9 +55,11 @@ export function Modal({
       >
         <header>
           <h2>{title}</h2>
-          <button className="icon" aria-label="关闭" onClick={close}>
-            <X size={20} />
-          </button>
+          {closable && (
+            <button className="icon" aria-label="关闭" onClick={close}>
+              <X size={20} />
+            </button>
+          )}
         </header>
         {children}
       </div>

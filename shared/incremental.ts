@@ -1,10 +1,5 @@
 import { boundedContext, relevantEvents, type MemoryEvent } from "./memory";
-import {
-  BATCH_SIZE,
-  LINE_CONTEXT_MESSAGES,
-  MAX_MESSAGES,
-  MAX_TEXT_CHARS,
-} from "./limits";
+import { requestLimits as limits } from "./limits";
 import type { Message, Relation, LineResult, AnalysisRequest } from "./types";
 export function incrementalJobs(
   messages: Message[],
@@ -55,7 +50,7 @@ export function incrementalJobs(
   for (let start = 0; start < messages.length;) {
     let end = start,
       chars = 0;
-    while (end < messages.length && end - start < BATCH_SIZE) {
+    while (end < messages.length && end - start < limits.batch) {
       const n = Array.from(messages[end].text).length;
       if (end > start && chars + n > 1500) break;
       chars += n;
@@ -79,7 +74,7 @@ export function incrementalJobs(
         sender === "self" ? lastIndex + 1 : Math.min(messages.length, end + 20);
       const context = boundedContext(
         messages,
-        Math.max(0, start - LINE_CONTEXT_MESSAGES),
+        Math.max(0, start - limits.lineContext),
         contextEnd,
         events,
         sender === "self",
@@ -94,7 +89,7 @@ export function incrementalJobs(
           targetIds: [target.id],
           ...boundedContext(
             messages,
-            Math.max(0, i - LINE_CONTEXT_MESSAGES),
+            Math.max(0, i - limits.lineContext),
             i + 1,
             events,
             true,
@@ -134,11 +129,15 @@ export function overviewJob(
     // retrieved event originals that sit outside the window.
     ...boundedContext(
       messages,
-      Math.max(0, messages.length - MAX_MESSAGES),
+      Math.max(0, messages.length - limits.messages),
       messages.length,
       events,
       false,
-      { count: MAX_MESSAGES - 50, chars: MAX_TEXT_CHARS - 5000 },
+      {
+        count: limits.messages - 50,
+        // Headroom for event originals: a quarter of the budget, at most 5,000.
+        chars: limits.chars - Math.min(5000, limits.chars / 4),
+      },
     ),
   };
 }

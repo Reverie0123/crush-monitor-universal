@@ -16,6 +16,7 @@ export function DisclaimerModal({
       title="使用前请阅读"
       // Before acceptance the only way out is to accept.
       close={() => accepted && onClose()}
+      closable={accepted}
     >
       <div className="disclaimer">
         <h3>仅供娱乐参考</h3>
@@ -25,7 +26,8 @@ export function DisclaimerModal({
         <h3>隐私与他人信息</h3>
         <p>
           聊天记录里有对方的话和个人信息。分析时，所需的聊天片段（按设置自动打码后）会发送给你配置的模型服务商（如
-          DeepSeek），由其按自己的隐私政策处理。请只分析你有权处理的聊天，尊重对方的隐私，不要把结果或原文公开传播。
+          DeepSeek，或调用 Jev 的 OpenRouter
+          等平台），由其按自己的隐私政策处理。请只分析你有权处理的聊天，尊重对方的隐私，不要把结果或原文公开传播。
         </p>
         <h3>费用</h3>
         <p>

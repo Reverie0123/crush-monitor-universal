@@ -1,6 +1,6 @@
 import { Modal } from "./ui";
 import { AvatarPicker } from "../AvatarPicker";
-import { ModelSettings } from "../ModelSettings";
+import { ModelSettings, type PublicConfig } from "../ModelSettings";
 import type { Avatars } from "../storage";
 import {
   RELATION_INFO,
@@ -21,7 +21,7 @@ export function SettingsModal({
   avatars,
   updateAvatars,
   configured,
-  setConfigured,
+  onConfig,
   on,
   close,
 }: {
@@ -37,7 +37,7 @@ export function SettingsModal({
   avatars: Avatars;
   updateAvatars: (change: (old: Avatars) => Avatars) => void;
   configured: boolean;
-  setConfigured: (v: boolean) => void;
+  onConfig: (c: PublicConfig) => void;
   on: { swap: () => void; clear: () => void; disclaimer: () => void };
   close: () => void;
 }) {
@@ -117,7 +117,7 @@ export function SettingsModal({
       </details>
       <details className="settings-section" open={!configured}>
         <summary>模型与接口</summary>
-        <ModelSettings onSaved={(c) => setConfigured(c.configured)} />
+        <ModelSettings onSaved={onConfig} />
       </details>
       <p className="app-version">
         版本 {__APP_VERSION__} · DeepSeek / OpenAI 改编版

@@ -5,6 +5,11 @@ import { LEVELS, type Level } from "../../shared/plan";
 import type { Analysis } from "../useAnalysis";
 import type { Spend } from "../useSpend";
 import type { Estimate } from "../../shared/estimate";
+import { requestLimits } from "../../shared/limits";
+
+/** e.g. "500 条 / 12,000 字" */
+const limitText = () =>
+  `${requestLimits.messages.toLocaleString()} 条 / ${requestLimits.chars.toLocaleString()} 字`;
 
 const RANGES: [string, number | null][] = [
   ["全部", null],
@@ -32,7 +37,7 @@ export function StatusBar({
 }: {
   a: Analysis;
   spend: Spend;
-  pending: { lines: number; estimate: Estimate } | null;
+  pending: { lines: number; batched: boolean; estimate: Estimate } | null;
   configured: boolean;
   notice: string;
   incomplete: string[];
@@ -53,7 +58,7 @@ export function StatusBar({
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, [busy]);
-  const { done, total, startedAt } = a.progress;
+  const { done, total, startedAt, batched, range, count } = a.progress;
   const eta = busy ? remaining(done, total, startedAt) : "";
   // Level and range stay selectable after a run, so a quick run can be deepened.
   const controls = (
@@ -106,6 +111,13 @@ export function StatusBar({
                   ? ` / 预计${formatYuan(spend.runEstimate).replace("约 ", "")}`
                   : "")}
             <button onClick={a.cancel}>停止</button>
+            {batched && (
+              <span className="batch-note">
+                聊天已超过单次上限（{limitText()}），分批上传中
+                {range &&
+                  `：正在分析第 ${range[0].toLocaleString()}–${range[1].toLocaleString()} 条，共 ${count.toLocaleString()} 条`}
+              </span>
+            )}
           </>
         ) : pending ? (
           // Nothing is sent until the user has seen the estimate.
@@ -120,7 +132,9 @@ export function StatusBar({
             {controls}
             {pending.lines
               ? `待分析 ${pending.lines.toLocaleString()} 条`
-              : "只做整体分析"}{" "}
+              : "只做整体分析"}
+            {pending.batched &&
+              `（超过单次上限 ${limitText()}，将分批上传；整体好感只读最近的部分）`}{" "}
             · 预计{formatYuan(spend.estimateCost(pending.estimate))}
             <button
               className="start-run"

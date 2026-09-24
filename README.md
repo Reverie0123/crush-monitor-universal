@@ -34,7 +34,7 @@
 - 也可以换成 OpenAI 或其他兼容服务，在网页设置里改接口地址和模型名即可。
 - 通用模型自己给出的概率没有经过 Jev 那样的专门校准，结果的精细程度可能不如原版。
 
-**也可以继续用原版的 Jev**：在设置「模型与接口」里切到「Jev（原版模型）」，选调用平台（[OpenRouter](https://openrouter.ai/settings/keys)、Vercel AI Gateway 或 TypeSafe 官方）并填入该平台的 Key。Jev 直接给出校准过的概率，但不写判断理由；「回复建议」仍使用 DeepSeek / OpenAI 的 Key。两边的 Key 分开保存，可以随时切换。
+**也可以继续用原版的 Jev**：在设置「模型与接口」里切到「Jev（原版模型）」，选调用平台（[OpenRouter](https://openrouter.ai/settings/keys)、Vercel AI Gateway 或 TypeSafe 官方）并填入该平台的 Key。Jev 直接给出校准过的概率，但不写判断理由。Jev 模式下可以选「仅 Jev」（没有回复建议），或「Jev + DeepSeek / OpenAI」（分析用 Jev，回复建议由 DeepSeek / OpenAI 来写）。Jev 一次最多读 500 条 / 12,000 字，更长的聊天会自动分批上传，底部会显示正在分析第几条到第几条。两边的 Key 分开保存，可以随时切换。
 
 ## 本地运行
 
