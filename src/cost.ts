@@ -1,4 +1,5 @@
 import type { UsageTotal } from "./useAnalysis";
+import { requestLimits, type RequestLimits } from "../shared/limits";
 
 /**
  * Yuan per million tokens, plus a correction factor from the visitor's real bill.
@@ -18,11 +19,17 @@ export const DEFAULT_PRICES: Prices = {
   factor: 1,
 };
 // v2: the v1 defaults (2 / 0.2 / 3) overestimated; drop them rather than keep a wrong number.
-const KEY = "crush-monitor-prices-v2";
+// Each model keeps its own prices and bill calibration, so one never skews the other.
+type Provider = RequestLimits["provider"];
+const key = (provider: Provider) =>
+  provider === "jev" ? "crush-monitor-prices-jev" : "crush-monitor-prices-v2";
 
-export function loadPrices(): Prices {
+/** Prices for the given model; by default the one in use. */
+export function loadPrices(
+  provider: Provider = requestLimits.provider,
+): Prices {
   try {
-    const v = JSON.parse(localStorage.getItem(KEY) ?? "null");
+    const v = JSON.parse(localStorage.getItem(key(provider)) ?? "null");
     if (
       v &&
       ["input", "cached", "output"].every((k) => typeof v[k] === "number")
@@ -33,9 +40,12 @@ export function loadPrices(): Prices {
   }
   return DEFAULT_PRICES;
 }
-export function savePrices(p: Prices) {
+export function savePrices(
+  p: Prices,
+  provider: Provider = requestLimits.provider,
+) {
   try {
-    localStorage.setItem(KEY, JSON.stringify(p));
+    localStorage.setItem(key(provider), JSON.stringify(p));
   } catch {
     // Not persisting a display preference is harmless.
   }

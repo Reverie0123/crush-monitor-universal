@@ -2,7 +2,7 @@
 
 [简体中文](README.md) · English
 
-> **About this version:** an adaptation of [Crush Monitor](https://github.com/FerryCorleone/crush-monitor) by [**FerryCorleone**](https://github.com/FerryCorleone). The original uses TypeSafe's Jev model; because TypeSafe paused new sign-ups, this version calls DeepSeek / OpenAI-compatible APIs instead and adds a number of improvements. Published with the original author's permission; it keeps the original MIT license and copyright notice ([LICENSE](LICENSE)).
+> **About this version:** an adaptation of [Crush Monitor](https://github.com/FerryCorleone/crush-monitor) by [**FerryCorleone**](https://github.com/FerryCorleone). The original uses TypeSafe's Jev model; because TypeSafe paused new sign-ups, this version calls DeepSeek / OpenAI-compatible APIs by default, can still switch back to Jev (via OpenRouter, Vercel or TypeSafe) in the settings, and adds a number of improvements. Published with the original author's permission; it keeps the original MIT license and copyright notice ([LICENSE](LICENSE)).
 
 A tool for looking at conversations with your crush or partner. It helps you make sense of emotions and intentions, and spot replies you could have worded better.
 

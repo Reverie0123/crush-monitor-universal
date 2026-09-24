@@ -67,6 +67,12 @@ export function ModelSettings({
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // The price fields belong to the model selected in the form.
+  const formProvider = form?.provider;
+  useEffect(() => {
+    if (formProvider) setPrices(loadPrices(formProvider));
+  }, [formProvider]);
+
   useEffect(() => {
     apiFetch("/api/config")
       .then((r) => r.json())
@@ -123,7 +129,7 @@ export function ModelSettings({
       setForm(body);
       setApiKey("");
       setJevKey("");
-      savePrices(prices);
+      savePrices(prices, form!.provider);
       onSaved?.(body);
       if (!test) {
         setStatus("已保存，立即生效");
@@ -346,7 +352,8 @@ export function ModelSettings({
       </label>
       <fieldset className="price-row">
         <legend>
-          单价（元 / 百万 token，用于估算花费，请以服务商官网为准）
+          {jev ? "Jev 的单价" : "单价"}
+          （元 / 百万 token，用于估算花费，请以服务商官网为准）
         </legend>
         {(["input", "cached", "output"] as const).map((k) => (
           <label key={k}>

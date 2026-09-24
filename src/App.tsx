@@ -105,6 +105,8 @@ export default function App() {
   function applyConfig(c: PublicConfig) {
     // Set before the state change so the re-render plans with the new limits.
     setRequestLimits(c.provider === "jev" ? JEV_LIMITS : CHAT_LIMITS);
+    // Each model has its own prices.
+    spend.reloadPrices();
     setProvider(c.provider);
     setConfigured(!!c.configured);
     setNoSuggest(

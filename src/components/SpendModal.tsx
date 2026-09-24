@@ -60,7 +60,8 @@ export function SpendModal({
       </button>
       <h3>按实际账单校准</h3>
       <p>
-        单价在设置的「模型与接口」里可以改。服务商分高峰、低谷时段定价，估算难免有偏差。
+        单价在设置的「模型与接口」里可以改，DeepSeek / OpenAI 和 Jev
+        各有一套单价和校准。服务商分高峰、低谷时段定价，估算难免有偏差；切换过模型时，这段聊天的累计花费按当前模型的单价估算。
         {prices.factor !== 1 &&
           ` 当前已按你的账单校准（×${prices.factor.toFixed(2)}）。`}
         {spend.estimateFactor !== 1 &&

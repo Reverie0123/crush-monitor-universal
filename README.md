@@ -2,7 +2,7 @@
 
 简体中文 · [English](README.en.md)
 
-> **关于本版本**：这是基于 [Crush 好感监控器](https://github.com/FerryCorleone/crush-monitor) 的改编版，原作者是 [**FerryCorleone**](https://github.com/FerryCorleone)。原版使用 TypeSafe 的 Jev 模型；因为 TypeSafe 暂停了新用户注册，本版本改为调用 DeepSeek / OpenAI 等兼容接口，并在此基础上做了一些完善。本改编版经原作者同意后发布，沿用原来的 MIT 许可证，版权声明见 [LICENSE](LICENSE)。
+> **关于本版本**：这是基于 [Crush 好感监控器](https://github.com/FerryCorleone/crush-monitor) 的改编版，原作者是 [**FerryCorleone**](https://github.com/FerryCorleone)。原版使用 TypeSafe 的 Jev 模型；因为 TypeSafe 暂停了新用户注册，本版本默认改为调用 DeepSeek / OpenAI 等兼容接口，也可以在设置里切回原版的 Jev（通过 OpenRouter、Vercel 或 TypeSafe 调用），并在此基础上做了一些完善。本改编版经原作者同意后发布，沿用原来的 MIT 许可证，版权声明见 [LICENSE](LICENSE)。
 
 一个用大模型分析你和 Crush 或对象聊天的小工具。帮你读懂一点对方的情绪和想法，也看看自己的回复哪里没表达好、可以怎么调整。
 
@@ -96,15 +96,15 @@ iMessage 等软件复制后若只有正文，没有发送人，请先补上 `Ale
 
 ## 和原版的主要差异
 
-1. 模型接口从 TypeSafe Jev 换成 OpenAI 兼容接口（默认 DeepSeek），新增 `server/llm.ts` 适配层。
+1. 模型接口默认从 TypeSafe Jev 换成 OpenAI 兼容接口（默认 DeepSeek），新增 `server/llm.ts` 适配层；原版的 Jev 仍可在设置里选用。
 2. 问题按小批并行请求；返回格式异常时自动重试、拆分重问，个别问题失败只标为“未完成”，可单独重试。
 3. 重写了给模型的阅读指引：先通读整段、结合上下文、网聊信号、回复节奏、引用关系和用户填写的关系背景，并要求打分有区分度。
-4. 单次上限从 500 条 / 12,000 字提到 2,000 条 / 60,000 字，并发从 2 路提到 9 路。
+4. 用 DeepSeek / OpenAI 时，单次上限从 500 条 / 12,000 字提到 2,000 条 / 60,000 字，并发从 2 路提到 9 路；用 Jev 时保持原版上限，超出部分自动分批。
 5. 新增：判断依据展示、关系走势、关键时刻、回复建议、报告导出、花费统计、隐私打码、网页内设置、结果缓存、Windows 启动脚本。
 
 ## 开发
 
-React + TypeScript + Vite + Express，通过 OpenAI 兼容的 Chat Completions 接口调用模型。
+React + TypeScript + Vite + Express，通过 OpenAI 兼容的 Chat Completions 接口或 Jev 的原生接口调用模型。
 
 ```sh
 npm run dev        # 开发模式：http://127.0.0.1:5178/
