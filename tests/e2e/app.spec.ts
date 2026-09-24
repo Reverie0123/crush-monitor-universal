@@ -210,3 +210,84 @@ test("条款确认前没有关闭按钮；设置里可以切到 Jev 并选是否
   await expect(dialog.getByLabel(/回复建议用的 API Key/)).toBeVisible();
   await expect(dialog.getByLabel("接口地址")).toBeVisible();
 });
+
+// ---- Jev mode: the same page served by a second server set to Jev only ----
+const JEV = "http://127.0.0.1:3192";
+const jevStats = async (page: Page) =>
+  (await page.request.get("http://127.0.0.1:3191/jev-stats")).json();
+
+async function openJev(page: Page, text: string) {
+  await page.goto(JEV);
+  await page
+    .getByRole("dialog", { name: "使用前请阅读" })
+    .getByRole("button", { name: /我已阅读/ })
+    .click();
+  await page.getByLabel("粘贴聊天记录").fill(text);
+  await page
+    .locator(".composer-actions")
+    .getByRole("button", { name: "导入聊天" })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "确认聊天里的你" });
+  await dialog.getByRole("button", { name: "我", exact: true }).click();
+  await dialog.getByRole("button", { name: "导入聊天" }).click();
+  await expect(dialog).toBeHidden();
+}
+
+test("Jev 模式：完整分析跑通，请求是 Jev 的原生格式，仅 Jev 时没有回复建议", async ({
+  page,
+}) => {
+  await openJev(page, chat());
+  await expect(page.locator(".pending-run")).toContainText(
+    "Jev 以平台账单为准",
+  );
+  await runAnalysis(page);
+  await expect(page.locator(".affinity-number")).not.toHaveText("—");
+  await expect(page.locator(".emotion-tag").first()).toBeVisible();
+  await expect(page.locator(".reply-tag").first()).toBeVisible();
+  await expect(page.locator(".retry-tag")).toHaveCount(0);
+  // Jev writes no reasons: no empty reason sections.
+  await page.locator(".header-affinity").click();
+  await expect(page.getByText("模型的整体解读")).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await page.locator(".reply-tag").first().click();
+  const detail = page.getByRole("dialog", { name: "回复评价" });
+  await expect(detail.getByText("当前是「仅 Jev」模式")).toBeVisible();
+  await expect(
+    detail.getByRole("button", { name: /怎么说更好|换两种说法/ }),
+  ).toHaveCount(0);
+  const stats = await jevStats(page);
+  expect(stats.rejected).toEqual([]);
+  expect(stats.requests).toBeGreaterThan(0);
+});
+
+test("Jev 模式：长聊天自动分批，每次不超过原版上限，并发不超过 2 路", async ({
+  page,
+}) => {
+  // 700 messages, about 17,000 characters: over Jev's 500 / 12,000.
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const lines = ["【聊天记录摘要】", "会话名称：小雨", "", ""];
+  for (let i = 0; i < 700; i++)
+    lines.push(
+      `${i % 2 ? "我" : "小雨"} 2026-08-${pad(1 + Math.floor(i / 40))} 20:${pad(i % 60)}:00`,
+      `第${i}句聊天内容，今天过得怎么样呀`,
+      "",
+    );
+  await openJev(page, lines.join("\n"));
+  await page.getByLabel("分析档位").selectOption("standard");
+  await expect(page.locator(".pending-run")).toContainText(
+    "超过单次上限，将分批上传",
+  );
+  await page.getByRole("button", { name: "开始分析" }).click();
+  await expect(page.locator(".batch-note")).toContainText(
+    /分批上传中：正在分析第 [\d,]+–[\d,]+ 条，共 700 条/,
+  );
+  await expect(page.getByText("分析完成")).toBeVisible({ timeout: 90_000 });
+  const stats = await jevStats(page);
+  expect(stats.rejected).toEqual([]);
+  expect(stats.maxMessages).toBeLessThanOrEqual(500);
+  expect(stats.maxChars).toBeLessThanOrEqual(12000);
+  expect(stats.maxInFlight).toBeLessThanOrEqual(2);
+  // Every counterpart line was analyzed despite the batching.
+  await expect(page.locator(".emotion-tag")).not.toHaveCount(0);
+  await expect(page.locator(".retry-tag")).toHaveCount(0);
+});

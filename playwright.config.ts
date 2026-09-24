@@ -3,7 +3,8 @@ import { defineConfig } from "@playwright/test";
 // UI tests: the real page and server, with a local stand-in for the model API.
 // Uses the Edge that ships with Windows, so no browser download is needed.
 const APP = 3190,
-  MOCK = 3191;
+  MOCK = 3191,
+  JEV_APP = 3192;
 export default defineConfig({
   testDir: "tests/e2e",
   timeout: 60_000,
@@ -32,6 +33,22 @@ export default defineConfig({
         OPENAI_API_KEY: "test-key",
         OPENAI_BASE_URL: `http://127.0.0.1:${MOCK}/v1`,
         OPENAI_MODEL: "mock-model",
+        LLM_CACHE: "off",
+      },
+    },
+    // The same page in Jev-only mode (reuses the build above).
+    {
+      command: "npx tsx server/index.ts",
+      url: `http://127.0.0.1:${JEV_APP}/api/health`,
+      timeout: 60_000,
+      reuseExistingServer: false,
+      env: {
+        PORT: String(JEV_APP),
+        LLM_PROVIDER: "jev",
+        JEV_PLATFORM: "openrouter",
+        OPENROUTER_API_KEY: "test-key",
+        JEV_ENDPOINT: `http://127.0.0.1:${MOCK}/jev`,
+        JEV_SUGGEST: "off",
         LLM_CACHE: "off",
       },
     },

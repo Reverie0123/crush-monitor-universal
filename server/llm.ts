@@ -61,6 +61,8 @@ export function config() {
   const jev = {
     platform,
     ...JEV_PLATFORMS[platform],
+    // For tests and proxies only; not editable from the page.
+    ...(env.JEV_ENDPOINT?.trim() ? { endpoint: env.JEV_ENDPOINT.trim() } : {}),
     apiKey: env[JEV_PLATFORMS[platform].keyEnv]?.trim() ?? "",
     /** Which platforms have a key saved. */
     keys: Object.fromEntries(
