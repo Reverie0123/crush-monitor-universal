@@ -96,9 +96,14 @@ app.post("/api/config/test", async (_req, res) => {
     res.json(await testConnection(AbortSignal.timeout(30000)));
   } catch (error) {
     const code = Number((error as { status?: number }).status) || 502;
-    res
-      .status(200)
-      .json({ ok: false, error: errorText(code, (error as Error).message) });
+    res.status(200).json({
+      ok: false,
+      error: errorText(
+        code,
+        (error as Error).message,
+        config().provider === "jev",
+      ),
+    });
   }
 });
 app.delete("/api/cache", async (_req, res) => {
@@ -117,20 +122,35 @@ const ERRORS: Record<number, string> = {
   429: "模型服务限流，请稍后重试",
   529: "模型服务暂时繁忙，请重试",
 };
-function errorText(code: number, detail?: string) {
+// The same statuses mean different fixes when the analysis runs on Jev, whose
+// settings have no model name or address to check.
+const JEV_ERRORS: Record<number, string> = {
+  400: "Jev 没有接受这次请求，可能是聊天太长，请只分析最近 7 天或 30 天后重试",
+  401: "Jev 的 API Key 无效，请在设置里检查（要填所选调用平台的 Key）",
+  402: "调用 Jev 的平台余额不足，请到该平台充值后重试",
+  403: "没有调用 Jev 的权限：用 Vercel 调用需要先在 Vercel 绑定信用卡；其他平台请检查 Key 的权限",
+  404: "Jev 接口暂时不可用，可以在设置里换一个调用平台试试",
+};
+function errorText(code: number, detail?: string, jev = false) {
   return (
+    (jev && JEV_ERRORS[code]) ||
     ERRORS[code] ||
     (code === 502 && detail === "network error"
       ? "连不上模型服务，请检查网络和接口地址"
       : "分析未完成，可能是网络超时。已保留聊天，可重试。")
   );
 }
-function fail(res: express.Response, error: unknown, aborted: boolean) {
+function fail(
+  res: express.Response,
+  error: unknown,
+  aborted: boolean,
+  jev = false,
+) {
   const code = Number((error as { status?: number }).status) || 502;
   if (!res.headersSent && !aborted)
     res
       .status(code >= 400 && code < 600 ? code : 502)
-      .json({ error: errorText(code, (error as Error).message) });
+      .json({ error: errorText(code, (error as Error).message, jev) });
 }
 
 // Guards against runaway loops in the page, not normal use.
@@ -188,7 +208,7 @@ app.post("/api/analyze", async (req, res) => {
   try {
     res.json(await analyze(valid.data, controller.signal));
   } catch (error) {
-    fail(res, error, controller.signal.aborted);
+    fail(res, error, controller.signal.aborted, config().provider === "jev");
   } finally {
     active--;
   }
@@ -203,7 +223,7 @@ app.post("/api/suggest", async (req, res) => {
   if (!config().suggest) {
     res.status(503).json({
       error:
-        config().provider === "jev" && process.env.JEV_SUGGEST?.trim() !== "on"
+        config().provider === "jev" && !config().jevSuggest
           ? "当前是「仅 Jev」模式，没有回复建议。需要的话在设置里改成「Jev + DeepSeek / OpenAI」并填写 Key"
           : "写回复建议需要 DeepSeek / OpenAI 的 API Key，请在设置里填写",
     });

@@ -189,3 +189,24 @@ test("超过单次花费上限会自动暂停", async ({ page }) => {
   );
   await expect(page.getByRole("button", { name: "继续分析" })).toBeVisible();
 });
+
+test("条款确认前没有关闭按钮；设置里可以切到 Jev 并选是否要回复建议", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const disclaimer = page.getByRole("dialog", { name: "使用前请阅读" });
+  await expect(disclaimer.getByRole("button", { name: "关闭" })).toHaveCount(0);
+  await disclaimer.getByRole("button", { name: /我已阅读/ }).click();
+  await page.getByRole("button", { name: "更多聊天设置" }).click();
+  const dialog = page.getByRole("dialog", { name: "聊天设置" });
+  await dialog.getByText("模型与接口").click();
+  // Only switches the form; nothing is saved, so the test server's settings stay.
+  await dialog.getByRole("button", { name: "Jev（原版模型）" }).click();
+  await expect(dialog.getByText("保存后切换")).toBeVisible();
+  await expect(dialog.getByLabel("Jev 调用平台")).toBeVisible();
+  await expect(dialog.getByText(/不提供回复建议/)).toBeVisible();
+  await expect(dialog.getByLabel("接口地址")).toHaveCount(0);
+  await dialog.getByRole("button", { name: "Jev + DeepSeek / OpenAI" }).click();
+  await expect(dialog.getByLabel(/回复建议用的 API Key/)).toBeVisible();
+  await expect(dialog.getByLabel("接口地址")).toBeVisible();
+});

@@ -237,6 +237,11 @@ export function ModelSettings({
           Jev（原版模型）
         </button>
       </div>
+      {saved && form.provider !== saved.provider && (
+        <p className="settings-note">
+          保存后切换。已经分析过的消息保留原来的结果，之后的新消息和整体判断用新模型。
+        </p>
+      )}
       {jev ? (
         <>
           <label className="field">

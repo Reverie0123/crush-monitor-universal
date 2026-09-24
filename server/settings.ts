@@ -23,7 +23,7 @@ export function publicConfig() {
     keyHint: hint(c.openaiKey),
     jevPlatform: c.jev.platform,
     jevKeyHint: hint(c.jev.apiKey),
-    jevSuggest: process.env.JEV_SUGGEST?.trim() === "on",
+    jevSuggest: c.jevSuggest,
     suggest: c.suggest,
     model: c.openaiModel,
     baseURL: c.baseURL,

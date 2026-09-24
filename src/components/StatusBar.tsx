@@ -136,6 +136,7 @@ export function StatusBar({
             {pending.batched &&
               `（超过单次上限 ${limitText()}，将分批上传；整体好感只读最近的部分）`}{" "}
             · 预计{formatYuan(spend.estimateCost(pending.estimate))}
+            {requestLimits.provider === "jev" && "（Jev 按平台计费，仅供参考）"}
             <button
               className="start-run"
               disabled={!configured}

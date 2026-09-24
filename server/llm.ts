@@ -1,5 +1,6 @@
-// OpenAI-compatible replacement for TypeSafe's systemOne endpoint.
-// Keeps the same request shape (state + typed questions) and answer shape
+// Answers the analysis questions with either an OpenAI-compatible chat model
+// (default) or TypeSafe's Jev, the original project's model. Both take the
+// same request shape (state + typed questions) and give the same answer shape
 // (choice / score / noul with probabilities), so the rules layer is unchanged.
 import type { EntryType, Question, Questions } from "../shared/questions";
 import { createHash } from "node:crypto";
@@ -59,11 +60,12 @@ export function config() {
   };
   const provider = env.LLM_PROVIDER?.trim() === "jev" ? "jev" : "openai";
   // With Jev, reply suggestions come from the chat model only if asked for.
-  const suggest =
-    !!openaiKey && (provider === "openai" || env.JEV_SUGGEST?.trim() === "on");
+  const jevSuggest = env.JEV_SUGGEST?.trim() === "on";
   return {
     provider,
-    suggest,
+    jevSuggest,
+    /** Whether reply suggestions can be written with these settings. */
+    suggest: !!openaiKey && (provider === "openai" || jevSuggest),
     /** Key and model of whichever service runs the analysis. */
     apiKey: provider === "jev" ? jev.apiKey : openaiKey,
     model: provider === "jev" ? jev.model : openaiModel,
