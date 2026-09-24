@@ -128,12 +128,27 @@ export async function testConnection(signal?: AbortSignal) {
       },
       signal,
     );
-    return {
-      ok: typeof reply.answers.color === "object" && !!reply.answers.color,
-      model: reply.model,
-      latencyMs: Math.round(performance.now() - start),
-    };
+    const ok = typeof reply.answers.color === "object" && !!reply.answers.color;
+    const latencyMs = Math.round(performance.now() - start);
+    if (!ok || !config().suggest) return { ok, model: reply.model, latencyMs };
+    // Jev + chat model: the reply-suggestion key must work too.
+    try {
+      const chat = await chatCheck(signal);
+      return chat.ok
+        ? { ok, model: `${reply.model}，回复建议 ${chat.model}`, latencyMs }
+        : { ok: false, error: "Jev 正常，但回复建议用的模型没有按要求回复" };
+    } catch (error) {
+      return {
+        ok: false,
+        error: `Jev 正常，但回复建议用的 DeepSeek / OpenAI 连接失败（${(error as { status?: number }).status ?? "网络错误"}），请检查它的 Key 和接口地址`,
+      };
+    }
   }
+  const chat = await chatCheck(signal);
+  return { ...chat, latencyMs: Math.round(performance.now() - start) };
+}
+
+async function chatCheck(signal?: AbortSignal) {
   const reply = await callModel(
     [
       { role: "system", content: '只输出 JSON：{"ok": true}' },
@@ -144,6 +159,5 @@ export async function testConnection(signal?: AbortSignal) {
   return {
     ok: parseJSON(reply.content)?.ok === true,
     model: reply.model,
-    latencyMs: Math.round(performance.now() - start),
   };
 }

@@ -3,6 +3,7 @@
 import type { AnalysisRequest } from "./types";
 import { SHARED_MESSAGE, buildRequest, compactQuestion } from "./request";
 import { SYSTEM } from "./prompt";
+import { requestLimits } from "./limits";
 
 /** Rough tokenizer: Chinese characters cost more than JSON punctuation and ASCII. */
 export function tokens(text: string) {
@@ -25,8 +26,27 @@ export type Estimate = {
   requests: number;
 };
 
-export function estimateJobs(jobs: AnalysisRequest[]): Estimate {
+// Jev returns bare probabilities, no reasons.
+const JEV_OUTPUT = { choice: 12, score: 10, noul: 4 } as const;
+
+export function estimateJobs(
+  jobs: AnalysisRequest[],
+  jev = requestLimits.provider === "jev",
+): Estimate {
   const total: Estimate = { input: 0, cached: 0, output: 0, requests: 0 };
+  if (jev) {
+    // One request per job with the full questions; no system prompt, no cache.
+    for (const job of jobs) {
+      const { state, questions } = buildRequest(job);
+      total.requests++;
+      total.input += tokens(JSON.stringify({ state, questions }));
+      total.output += Object.values(questions).reduce(
+        (n, q) => n + JEV_OUTPUT[q.type],
+        0,
+      );
+    }
+    return total;
+  }
   let systemCached = false;
   for (const job of jobs) {
     const { state, questions } = buildRequest(job);

@@ -92,7 +92,8 @@ export default function App() {
     [noteDraft, setNoteDraft] = useState(""),
     [configured, setConfigured] = useState(true),
     [provider, setProvider] = useState<PublicConfig["provider"]>("openai"),
-    [canSuggest, setCanSuggest] = useState(true),
+    // Why reply suggestions are unavailable; empty when they are available.
+    [noSuggest, setNoSuggest] = useState(""),
     [highlight, setHighlight] = useState<string | null>(null),
     [suggesting, setSuggesting] = useState<string | null>(null),
     [suggestError, setSuggestError] = useState<{
@@ -105,7 +106,13 @@ export default function App() {
     setRequestLimits(c.provider === "jev" ? JEV_LIMITS : CHAT_LIMITS);
     setProvider(c.provider);
     setConfigured(!!c.configured);
-    setCanSuggest(!!c.suggest);
+    setNoSuggest(
+      c.suggest
+        ? ""
+        : c.provider === "jev" && !c.jevSuggest
+          ? "当前是「仅 Jev」模式，没有回复建议；可在设置里改成「Jev + DeepSeek / OpenAI」。"
+          : "写回复建议需要 DeepSeek / OpenAI 的 API Key，请在设置里填写。",
+    );
   }
   useEffect(() => {
     apiFetch("/api/config")
@@ -775,7 +782,7 @@ export default function App() {
           m={chosen}
           result={a.lines[chosen.id]}
           configured={configured}
-          canSuggest={canSuggest}
+          noSuggest={noSuggest}
           suggesting={suggesting === chosen.id}
           suggestError={
             suggestError?.id === chosen.id ? suggestError.message : ""

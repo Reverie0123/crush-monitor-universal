@@ -8,7 +8,7 @@ import {
   systemOne,
   toAnswer,
 } from "../server/llm";
-import { settingsSchema } from "../server/settings";
+import { settingsSchema, testConnection } from "../server/settings";
 import { findQuoted, periods, splitQuote, timings } from "../shared/context";
 import { buildRequest } from "../server/analysis";
 import type { Message } from "../shared/types";
@@ -457,5 +457,52 @@ test("选 Jev 时发完整问题到所选平台，一次请求，打码照常", 
   } finally {
     process.env.LLM_PROVIDER = "openai";
     delete process.env.JEV_API_KEY;
+  }
+});
+
+test("Jev + 其他模型时，测试连接两边都测；回复建议的 Key 坏了会说清楚", async () => {
+  env();
+  process.env.LLM_PROVIDER = "jev";
+  process.env.JEV_API_KEY = "jev-key";
+  process.env.JEV_SUGGEST = "on";
+  let chatOk = true;
+  globalThis.fetch = (async (url: string) => {
+    if (String(url).includes("/chat/completions"))
+      return chatOk
+        ? new Response(
+            JSON.stringify({
+              model: "fake-chat",
+              choices: [{ message: { content: '{"ok": true}' } }],
+            }),
+          )
+        : new Response("bad key", { status: 401 });
+    return new Response(
+      JSON.stringify({
+        model: "jev",
+        answers: {
+          color: {
+            type: "choice",
+            choice: "blue",
+            confidence: 0.9,
+            probabilities: { blue: 0.9, red: 0.1 },
+          },
+        },
+      }),
+    );
+  }) as typeof fetch;
+  try {
+    const good = await testConnection();
+    assert.equal(good.ok, true);
+    assert.match(String(good.model), /fake-chat/);
+    chatOk = false;
+    const bad = await testConnection();
+    assert.equal(bad.ok, false);
+    assert.match(String((bad as { error?: string }).error), /回复建议/);
+    process.env.JEV_SUGGEST = "off";
+    assert.equal((await testConnection()).ok, true);
+  } finally {
+    process.env.LLM_PROVIDER = "openai";
+    delete process.env.JEV_API_KEY;
+    delete process.env.JEV_SUGGEST;
   }
 });

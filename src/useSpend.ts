@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { requestLimits } from "../shared/limits";
 import type { Estimate } from "../shared/estimate";
 import {
   cost,
@@ -50,7 +51,12 @@ export function useSpend(a: Analysis) {
     if (busy && !run.current) run.current = { usage: a.usage, estimate: null };
     if (!busy && run.current) {
       const { usage, estimate } = run.current;
-      if (a.status === "complete" && estimate)
+      // The learned factor corrects chat-model estimates; Jev runs would skew it.
+      if (
+        a.status === "complete" &&
+        estimate &&
+        requestLimits.provider === "openai"
+      )
         setEstimateFactor((f) =>
           learnEstimateFactor(
             f,

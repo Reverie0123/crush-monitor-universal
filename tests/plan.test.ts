@@ -9,6 +9,7 @@ import {
 } from "../shared/request";
 import type { Message } from "../shared/types";
 import { learnEstimateFactor } from "../src/cost";
+import { estimateJobs } from "../shared/estimate";
 import {
   CHAT_LIMITS,
   JEV_LIMITS,
@@ -174,6 +175,12 @@ test("选 Jev 时长聊天分批：每次请求不超过 500 条 / 12,000 字，
     assert.equal(p.lineCount, 1200);
     // The overview reads the most recent part.
     assert.equal(requests[0].messages.at(-1)!.id, "L1199");
+    // Jev gets no system prompt and writes no reasons: far fewer tokens.
+    const jev = estimateJobs(requests);
+    const chat = estimateJobs(requests, false);
+    assert.equal(jev.cached, 0);
+    assert.equal(jev.requests, requests.length);
+    assert.ok(jev.output < chat.output / 3);
   } finally {
     setRequestLimits(CHAT_LIMITS);
   }

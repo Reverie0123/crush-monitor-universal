@@ -203,9 +203,9 @@ app.post("/api/suggest", async (req, res) => {
   if (!config().suggest) {
     res.status(503).json({
       error:
-        config().provider === "jev"
+        config().provider === "jev" && process.env.JEV_SUGGEST?.trim() !== "on"
           ? "当前是「仅 Jev」模式，没有回复建议。需要的话在设置里改成「Jev + DeepSeek / OpenAI」并填写 Key"
-          : "还没有设置 API Key，请点左下角设置填写",
+          : "写回复建议需要 DeepSeek / OpenAI 的 API Key，请在设置里填写",
     });
     return;
   }

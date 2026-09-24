@@ -10,6 +10,8 @@ export const BATCH_SIZE = 20;
 
 /** How much one analysis request may carry; depends on the model in use. */
 export type RequestLimits = {
+  /** Which kind of model these limits are for. */
+  provider: "openai" | "jev";
   /** Messages and characters the overview may read in one request. */
   messages: number;
   chars: number;
@@ -23,6 +25,7 @@ export type RequestLimits = {
   periodChars: number;
 };
 export const CHAT_LIMITS: RequestLimits = {
+  provider: "openai",
   messages: MAX_MESSAGES,
   chars: MAX_TEXT_CHARS,
   lineContext: LINE_CONTEXT_MESSAGES,
@@ -33,6 +36,7 @@ export const CHAT_LIMITS: RequestLimits = {
 };
 // The original project's limits for Jev: 500 messages or 12,000 characters.
 export const JEV_LIMITS: RequestLimits = {
+  provider: "jev",
   messages: 500,
   chars: 12000,
   lineContext: 80,

@@ -14,7 +14,7 @@ export function LineDetail({
   m,
   result,
   configured,
-  canSuggest,
+  noSuggest,
   suggesting,
   suggestError,
   reconsidering,
@@ -26,8 +26,8 @@ export function LineDetail({
   m: Message;
   result?: LineResult;
   configured: boolean;
-  /** False in Jev-only mode, which writes no rewrites. */
-  canSuggest: boolean;
+  /** Why rewrites are unavailable (e.g. Jev-only mode); empty when available. */
+  noSuggest: string;
   suggesting: boolean;
   suggestError: string;
   reconsidering: boolean;
@@ -117,7 +117,7 @@ export function LineDetail({
                   ))}
                 </>
               ) : null}
-              {canSuggest ? (
+              {!noSuggest ? (
                 <button
                   className="secondary"
                   disabled={suggesting || !configured}
@@ -131,10 +131,7 @@ export function LineDetail({
                       : "这句可以怎么说更好？"}
                 </button>
               ) : (
-                <p className="settings-note">
-                  当前是「仅 Jev」模式，没有回复建议；可在设置里改成「Jev +
-                  DeepSeek / OpenAI」。
-                </p>
+                <p className="settings-note">{noSuggest}</p>
               )}
               {suggestError && !suggesting && (
                 <p className="error">{suggestError}</p>
