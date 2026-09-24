@@ -1,7 +1,13 @@
 import { test, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { choice, noul, score } from "../shared/questions";
-import { Masker, parseJSON, systemOne, toAnswer } from "../server/llm";
+import {
+  Masker,
+  jevAnswer,
+  parseJSON,
+  systemOne,
+  toAnswer,
+} from "../server/llm";
 import { settingsSchema } from "../server/settings";
 import { findQuoted, periods, splitQuote, timings } from "../shared/context";
 import { buildRequest } from "../server/analysis";
@@ -16,6 +22,7 @@ afterEach(() => {
   globalThis.fetch = realFetch;
 });
 function env() {
+  process.env.LLM_PROVIDER = "openai";
   process.env.OPENAI_API_KEY = "test-key";
   process.env.OPENAI_BASE_URL = "http://model.test/v1";
   process.env.LLM_CACHE = "off";
@@ -358,4 +365,97 @@ test("打码后的内容才会发出，理由里的占位符被还原", async ()
   });
   assert.ok(!JSON.stringify(calls).includes("13912345678"));
   assert.equal((out.answers.a as any).reason, "提到了13912345678");
+});
+
+test("Jev 原生答案保留自带的选项、分数和确定度，格式不对的当作未回答", () => {
+  const c = choice("情绪", { 开心: null, 难过: null });
+  assert.deepEqual(
+    jevAnswer(c, {
+      type: "choice",
+      choice: "难过",
+      confidence: 0.7,
+      probabilities: { 开心: 0.3, 难过: 0.7, 编造: 0.5 },
+    }),
+    {
+      type: "choice",
+      choice: "难过",
+      confidence: 0.7,
+      probabilities: { 开心: 0.3, 难过: 0.7 },
+    },
+  );
+  const s = score("好感", ["低", "中", "高"]);
+  const a = jevAnswer(s, {
+    type: "score",
+    score: 1.4,
+    confidence: 0.6,
+    probabilities: { "0": 0.1, "1": 0.4, "2": 0.5 },
+  });
+  assert.equal(a.type === "score" && a.score, 1.4);
+  assert.equal(
+    jevAnswer(s, { type: "choice", probabilities: {} }).type,
+    "score",
+  );
+  assert.equal(
+    (jevAnswer(s, { type: "choice" }) as { confidence: number }).confidence,
+    0,
+  );
+  assert.deepEqual(jevAnswer(noul("拒绝"), { type: "noul", noul: 0.2 }), {
+    type: "noul",
+    noul: 0.2,
+  });
+});
+
+test("选 Jev 时发完整问题到所选平台，一次请求，打码照常", async () => {
+  env();
+  process.env.LLM_PROVIDER = "jev";
+  process.env.JEV_PLATFORM = "openrouter";
+  process.env.JEV_API_KEY = "jev-key";
+  try {
+    const calls: { url: string; auth: string; body: any }[] = [];
+    globalThis.fetch = (async (url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init!.body));
+      calls.push({
+        url,
+        auth: new Headers(init!.headers).get("Authorization") ?? "",
+        body,
+      });
+      return new Response(
+        JSON.stringify({
+          model: "typesafe/jev-1.13",
+          answers: {
+            mood: {
+              type: "choice",
+              choice: "开心",
+              confidence: 0.8,
+              probabilities: { 开心: 0.8, 难过: 0.2 },
+            },
+            refuse: { type: "noul", noul: 0.1 },
+          },
+          usage: { input_tokens: 500, output_tokens: 20 },
+        }),
+      );
+    }) as typeof fetch;
+    const result = await systemOne({
+      state: { chat: "我的电话 13812345678" },
+      questions: {
+        mood: choice("情绪", { 开心: "心情好", 难过: null }),
+        refuse: noul("拒绝了吗"),
+      },
+    });
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].url, "https://openrouter.ai/api/alpha/decisions");
+    assert.equal(calls[0].auth, "Bearer jev-key");
+    assert.equal(calls[0].body.model, "typesafe/jev-1.13");
+    // Full criteria, not the chat-model shorthand.
+    assert.equal(calls[0].body.questions.mood.criteria.开心, "心情好");
+    assert.ok(!JSON.stringify(calls[0].body).includes("13812345678"));
+    assert.equal(
+      result.answers.mood.type === "choice" && result.answers.mood.choice,
+      "开心",
+    );
+    assert.equal(result.usage.input_tokens, 500);
+  } finally {
+    process.env.LLM_PROVIDER = "openai";
+    delete process.env.JEV_API_KEY;
+  }
 });

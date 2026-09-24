@@ -34,6 +34,8 @@
 - 也可以换成 OpenAI 或其他兼容服务，在网页设置里改接口地址和模型名即可。
 - 通用模型自己给出的概率没有经过 Jev 那样的专门校准，结果的精细程度可能不如原版。
 
+**也可以继续用原版的 Jev**：在设置「模型与接口」里切到「Jev（原版模型）」，选调用平台（[OpenRouter](https://openrouter.ai/settings/keys)、Vercel AI Gateway 或 TypeSafe 官方）并填入该平台的 Key。Jev 直接给出校准过的概率，但不写判断理由；「回复建议」仍使用 DeepSeek / OpenAI 的 Key。两边的 Key 分开保存，可以随时切换。
+
 ## 本地运行
 
 需要 Node.js 22.12+。下载源码并解压，进入项目目录：

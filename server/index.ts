@@ -112,6 +112,7 @@ const ERRORS: Record<number, string> = {
   402: "API 账户余额不足，请充值后重试",
   403: "当前 API 账号没有调用权限",
   404: "找不到模型或接口，请在设置里检查模型名和接口地址",
+  413: "聊天太长，超出模型一次能读的范围，请只分析最近 7 天或 30 天",
   422: "模型返回格式异常，请重试或缩小聊天范围",
   429: "模型服务限流，请稍后重试",
   529: "模型服务暂时繁忙，请重试",
@@ -196,6 +197,16 @@ app.post("/api/suggest", async (req, res) => {
   const valid = suggestSchema.safeParse(req.body);
   if (!valid.success) {
     res.status(400).json({ error: "请求格式不正确" });
+    return;
+  }
+  // Jev only scores; rewriting a reply needs a chat model.
+  if (!config().openaiKey) {
+    res.status(503).json({
+      error:
+        config().provider === "jev"
+          ? "Jev 只能打分，写回复建议还需要 DeepSeek / OpenAI 的 Key，请在设置里填写"
+          : "还没有设置 API Key，请点左下角设置填写",
+    });
     return;
   }
   const controller = new AbortController();

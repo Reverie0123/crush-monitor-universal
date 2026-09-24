@@ -3,8 +3,11 @@ import { apiFetch } from "./api";
 import { DEFAULT_PRICES, loadPrices, savePrices, type Prices } from "./cost";
 
 export type PublicConfig = {
+  provider: "openai" | "jev";
   configured: boolean;
   keyHint: string;
+  jevPlatform: "typesafe" | "openrouter" | "vercel";
+  jevKeyHint: string;
   model: string;
   baseURL: string;
   effort: string;
@@ -28,6 +31,24 @@ const PRESETS = [
     effort: "low",
   },
 ];
+
+const JEV_PLATFORMS = [
+  {
+    key: "openrouter",
+    label: "OpenRouter",
+    keyUrl: "https://openrouter.ai/settings/keys",
+  },
+  {
+    key: "vercel",
+    label: "Vercel AI Gateway",
+    keyUrl: "https://vercel.com/d?to=/%5Bteam%5D/~/ai-gateway/api-keys",
+  },
+  {
+    key: "typesafe",
+    label: "TypeSafe 官方",
+    keyUrl: "https://console.typesafe.ai/",
+  },
+] as const;
 
 export function ModelSettings({
   onSaved,
@@ -54,6 +75,11 @@ export function ModelSettings({
   if (!form)
     return <p className="settings-status">{status || "正在读取设置…"}</p>;
   const set = (patch: Partial<PublicConfig>) => setForm({ ...form, ...patch });
+  const jev = form.provider === "jev";
+  const platform =
+    JEV_PLATFORMS.find((p) => p.key === form.jevPlatform) ?? JEV_PLATFORMS[0];
+  // The key box edits the selected service's key; each keeps its own.
+  const savedHint = jev ? saved?.jevKeyHint : saved?.keyHint;
 
   async function save(test = false) {
     setBusy(true);
@@ -66,6 +92,8 @@ export function ModelSettings({
         },
         body: JSON.stringify({
           ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
+          provider: form!.provider,
+          jevPlatform: form!.jevPlatform,
           model: form!.model,
           baseURL: form!.baseURL,
           effort: form!.effort,
@@ -108,78 +136,134 @@ export function ModelSettings({
 
   return (
     <div className="model-settings">
-      <div className="preset-row">
-        {PRESETS.map((p) => (
-          <button
-            key={p.label}
-            className={form.baseURL === p.baseURL ? "selected" : ""}
-            onClick={() =>
-              set({ baseURL: p.baseURL, model: p.model, effort: p.effort })
-            }
-          >
-            {p.label}
-          </button>
-        ))}
+      <div className="preset-row" role="group" aria-label="分析用的模型">
+        <button
+          className={form.provider === "openai" ? "selected" : ""}
+          onClick={() => {
+            set({ provider: "openai" });
+            setApiKey("");
+          }}
+        >
+          DeepSeek / OpenAI
+        </button>
+        <button
+          className={form.provider === "jev" ? "selected" : ""}
+          onClick={() => {
+            set({ provider: "jev" });
+            setApiKey("");
+          }}
+        >
+          Jev（原版模型）
+        </button>
       </div>
+      {jev ? (
+        <>
+          <label className="field">
+            Jev 调用平台
+            <select
+              value={form.jevPlatform}
+              onChange={(e) =>
+                set({
+                  jevPlatform: e.target.value as PublicConfig["jevPlatform"],
+                })
+              }
+            >
+              {JEV_PLATFORMS.map((p) => (
+                <option value={p.key} key={p.key}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="settings-note">
+            在{" "}
+            <a href={platform.keyUrl} target="_blank" rel="noreferrer">
+              {platform.label}
+            </a>{" "}
+            申请 Key。Jev 是原作者使用的 TypeSafe
+            判断模型，给出的概率经过专门校准，但不写判断理由；「回复建议」仍需要
+            DeepSeek / OpenAI 的 Key。Jev
+            按平台规则计费，下面的单价估算仅供参考。
+          </p>
+        </>
+      ) : (
+        <div className="preset-row">
+          {PRESETS.map((p) => (
+            <button
+              key={p.label}
+              className={form.baseURL === p.baseURL ? "selected" : ""}
+              onClick={() =>
+                set({ baseURL: p.baseURL, model: p.model, effort: p.effort })
+              }
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      )}
       <label className="field">
-        API Key
+        {jev ? `${platform.label} API Key` : "API Key"}
         <input
           type="password"
           autoComplete="off"
           value={apiKey}
           placeholder={
-            saved?.configured
-              ? `已设置（${saved.keyHint}），留空则不修改`
+            savedHint
+              ? `已设置（${savedHint}），留空则不修改`
               : "粘贴你的 API Key"
           }
           onChange={(e) => setApiKey(e.target.value)}
         />
       </label>
-      <label className="field">
-        接口地址
-        <input
-          value={form.baseURL}
-          onChange={(e) => set({ baseURL: e.target.value })}
-        />
-      </label>
-      <div className="field-row">
-        <label className="field">
-          模型
-          <input
-            value={form.model}
-            onChange={(e) => set({ model: e.target.value })}
-          />
-        </label>
-        <label className="field">
-          推理强度
-          <select
-            value={form.effort}
-            onChange={(e) => set({ effort: e.target.value })}
-          >
-            <option value="">不设置（DeepSeek 选这个）</option>
-            <option value="minimal">minimal</option>
-            <option value="low">low</option>
-            <option value="medium">medium</option>
-            <option value="high">high</option>
-          </select>
-        </label>
-      </div>
-      <label className="field">
-        随机度（temperature，留空用默认；越低结果越稳定）
-        <input
-          type="number"
-          min={0}
-          max={2}
-          step={0.1}
-          value={form.temperature ?? ""}
-          onChange={(e) =>
-            set({
-              temperature:
-                e.target.value === "" ? null : Number(e.target.value),
-            })
-          }
-        />
-      </label>
+      {!jev && (
+        <>
+          <label className="field">
+            接口地址
+            <input
+              value={form.baseURL}
+              onChange={(e) => set({ baseURL: e.target.value })}
+            />
+          </label>
+          <div className="field-row">
+            <label className="field">
+              模型
+              <input
+                value={form.model}
+                onChange={(e) => set({ model: e.target.value })}
+              />
+            </label>
+            <label className="field">
+              推理强度
+              <select
+                value={form.effort}
+                onChange={(e) => set({ effort: e.target.value })}
+              >
+                <option value="">不设置（DeepSeek 选这个）</option>
+                <option value="minimal">minimal</option>
+                <option value="low">low</option>
+                <option value="medium">medium</option>
+                <option value="high">high</option>
+              </select>
+            </label>
+          </div>
+          <label className="field">
+            随机度（temperature，留空用默认；越低结果越稳定）
+            <input
+              type="number"
+              min={0}
+              max={2}
+              step={0.1}
+              value={form.temperature ?? ""}
+              onChange={(e) =>
+                set({
+                  temperature:
+                    e.target.value === "" ? null : Number(e.target.value),
+                })
+              }
+            />
+          </label>
+        </>
+      )}
       <label className="check">
         <input
           type="checkbox"

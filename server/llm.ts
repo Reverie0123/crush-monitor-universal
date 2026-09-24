@@ -16,13 +16,57 @@ import { SYSTEM } from "../shared/prompt";
 import { SHARED_MESSAGE, compactQuestion } from "../shared/request";
 import { pickTemperature } from "./temperature";
 
+// TypeSafe's Jev answers the same typed questions natively. It is sold
+// directly and through two gateways; all three take the same request body.
+export const JEV_PLATFORMS = {
+  typesafe: {
+    name: "TypeSafe",
+    endpoint: "https://api.typesafe.ai/v1/systemone",
+    model: "jev-1.13.0",
+  },
+  openrouter: {
+    name: "OpenRouter",
+    endpoint: "https://openrouter.ai/api/alpha/decisions",
+    model: "typesafe/jev-1.13",
+  },
+  vercel: {
+    name: "Vercel AI Gateway",
+    endpoint: "https://ai-gateway.vercel.sh/typesafe/v1/systemone",
+    model: "typesafe-ai/jev",
+  },
+} as const;
+export type JevPlatform = keyof typeof JEV_PLATFORMS;
+export const JEV_PLATFORM_KEYS = Object.keys(JEV_PLATFORMS) as [
+  JevPlatform,
+  ...JevPlatform[],
+];
+
 /** Read on every call so the settings page can change them without a restart. */
 export function config() {
   const env = process.env;
   const temperature = Number.parseFloat(env.OPENAI_TEMPERATURE ?? "");
+  const openaiKey = env.OPENAI_API_KEY?.trim() ?? "";
+  const openaiModel = env.OPENAI_MODEL?.trim() || "deepseek-chat";
+  const platform = (
+    Object.hasOwn(JEV_PLATFORMS, env.JEV_PLATFORM?.trim() ?? "")
+      ? env.JEV_PLATFORM!.trim()
+      : "openrouter"
+  ) as JevPlatform;
+  const jev = {
+    platform,
+    ...JEV_PLATFORMS[platform],
+    apiKey: env.JEV_API_KEY?.trim() ?? "",
+  };
+  const provider = env.LLM_PROVIDER?.trim() === "jev" ? "jev" : "openai";
   return {
-    apiKey: env.OPENAI_API_KEY?.trim() ?? "",
-    model: env.OPENAI_MODEL?.trim() || "deepseek-chat",
+    provider,
+    /** Key and model of whichever service runs the analysis. */
+    apiKey: provider === "jev" ? jev.apiKey : openaiKey,
+    model: provider === "jev" ? jev.model : openaiModel,
+    jev,
+    /** The chat model: analysis in openai mode, reply suggestions in both. */
+    openaiKey,
+    openaiModel,
     baseURL: (
       env.OPENAI_BASE_URL?.trim() || "https://api.deepseek.com/v1"
     ).replace(/\/+$/, ""),
@@ -274,17 +318,17 @@ export async function callModel(
   json = true,
 ) {
   const c = config();
-  if (!c.apiKey) throw new LLMError("OPENAI_API_KEY missing", 401);
+  if (!c.openaiKey) throw new LLMError("OPENAI_API_KEY missing", 401);
   let response: Response;
   try {
     response = await fetch(`${c.baseURL}/chat/completions`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${c.apiKey}`,
+        Authorization: `Bearer ${c.openaiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: c.model,
+        model: c.openaiModel,
         ...(c.effort ? { reasoning_effort: c.effort } : {}),
         ...(c.temperature !== undefined ? { temperature: c.temperature } : {}),
         ...(json ? { response_format: { type: "json_object" } } : {}),
@@ -316,7 +360,7 @@ export async function callModel(
   };
   const u = data.usage ?? {};
   return {
-    model: data.model ?? c.model,
+    model: data.model ?? c.openaiModel,
     content: data.choices?.[0]?.message?.content ?? "",
     finish: data.choices?.[0]?.finish_reason,
     usage: {
@@ -380,6 +424,7 @@ export async function systemOne(
 ) {
   const c = config();
   const masker = new Masker(c.mask, c.maskWords);
+  if (c.provider === "jev") return jevSystemOne(request, masker, signal);
   const entries = Object.entries(request.questions);
   // Small batches keep each reply short enough to never be truncated, and let
   // the model reason about every question instead of skimming a long list.
@@ -417,6 +462,146 @@ export async function systemOne(
   };
 }
 
+// ---------- Jev ----------
+
+const num = (v: unknown) =>
+  typeof v === "number" && Number.isFinite(v) ? v : undefined;
+
+/**
+ * Converts one native Jev answer. Jev's own choice, score and confidence are
+ * kept; an answer of the wrong shape counts as unanswered, like a chat model's.
+ */
+export function jevAnswer(q: Question, raw: unknown): Answer {
+  const body = (raw && typeof raw === "object" ? raw : {}) as Record<
+    string,
+    unknown
+  >;
+  if (q.type === "noul") {
+    const yes = body.type === "noul" ? num(body.noul) : undefined;
+    return { type: "noul", noul: Math.min(1, Math.max(0, yes ?? 0)) };
+  }
+  const labels =
+    q.type === "score"
+      ? q.criteria.map((_, i) => String(i))
+      : Object.keys(q.criteria);
+  const p =
+    body.type === q.type ? distribution(body.probabilities, labels) : null;
+  if (!p) return toAnswer(q, undefined);
+  const top = Math.max(...Object.values(p));
+  const confidence = Math.min(1, Math.max(0, num(body.confidence) ?? top));
+  if (q.type === "score") {
+    const expected = Object.entries(p).reduce(
+      (s, [k, v]) => s + Number(k) * v,
+      0,
+    );
+    const given = num(body.score);
+    return {
+      type: "score",
+      score:
+        given !== undefined && given >= 0 && given <= labels.length - 1
+          ? given
+          : expected,
+      confidence,
+      probabilities: p,
+    };
+  }
+  const given = typeof body.choice === "string" ? body.choice : "";
+  return {
+    type: "choice",
+    choice: labels.includes(given)
+      ? given
+      : Object.entries(p).sort((a, b) => b[1] - a[1])[0][0],
+    confidence,
+    probabilities: p,
+  };
+}
+
+/** One native Jev request, retried once on rate limits and server errors. */
+export async function callJev(
+  body: { state: EntryType; questions: Questions },
+  signal?: AbortSignal,
+) {
+  const { jev } = config();
+  if (!jev.apiKey) throw new LLMError("JEV_API_KEY missing", 401);
+  for (let attempt = 0; ; attempt++) {
+    let response: Response;
+    try {
+      response = await fetch(jev.endpoint, {
+        method: "POST",
+        redirect: "error",
+        headers: {
+          Authorization: `Bearer ${jev.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ...body, model: jev.model }),
+        signal,
+      });
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      throw new LLMError("network error", 502);
+    }
+    if (!response.ok) {
+      // Provider bodies may echo the chat, so only the status is logged.
+      await response.body?.cancel();
+      console.error(`${jev.name} API ${response.status}`);
+      if (attempt < 2 && (response.status === 429 || response.status >= 500)) {
+        await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+        signal?.throwIfAborted();
+        continue;
+      }
+      throw new LLMError(`${jev.name} API ${response.status}`, response.status);
+    }
+    const data = (await response.json().catch(() => null)) as {
+      model?: string;
+      answers?: Record<string, unknown>;
+      usage?: { input_tokens?: number; output_tokens?: number };
+    } | null;
+    if (!data?.answers || typeof data.answers !== "object")
+      throw new LLMError(`${jev.name} returned no answers`, 422);
+    return {
+      model: data.model ?? jev.model,
+      answers: data.answers,
+      usage: {
+        input_tokens: num(data.usage?.input_tokens) ?? 0,
+        output_tokens: num(data.usage?.output_tokens) ?? 0,
+        cached_tokens: 0,
+      },
+    };
+  }
+}
+
+// Jev reads the full questions (not the chat-model shorthand) in one request
+// and returns calibrated probabilities, but no written reasons.
+async function jevSystemOne(
+  request: { state: EntryType; questions: Questions },
+  masker: Masker,
+  signal?: AbortSignal,
+) {
+  const c = config();
+  const body = {
+    state: masker.deep(request.state),
+    questions: masker.deep(request.questions),
+  };
+  const key = createHash("sha256")
+    .update(JSON.stringify(["jev", c.jev.platform, c.jev.model, body]))
+    .digest("hex");
+  const hit = c.cache ? await cacheGet(key) : undefined;
+  const reply = hit
+    ? { ...hit, usage: ZERO }
+    : await withSlot(() => callJev(body, signal));
+  if (!hit && c.cache)
+    await cachePut(key, { model: reply.model, answers: reply.answers });
+  const answers: Record<string, Answer> = {};
+  for (const [name, q] of Object.entries(request.questions))
+    answers[name] = jevAnswer(q, reply.answers[name]);
+  return {
+    model: reply.model,
+    answers,
+    context: undefined as string | undefined,
+    usage: reply.usage,
+  };
+}
+
 // Malformed output is usually specific to one generation: split the batch and
 // ask again, and as a last resort leave a single question unanswered, which the
 // rules layer reports as insufficient instead of failing the whole job.
@@ -435,7 +620,7 @@ async function robust(
       console.error(
         `Question ${chunk[0][0]} left unanswered after repeated malformed output`,
       );
-      return { model: config().model, answers: {}, usage: ZERO };
+      return { model: config().openaiModel, answers: {}, usage: ZERO };
     }
     const half = Math.ceil(chunk.length / 2);
     const parts = await Promise.all([
@@ -490,7 +675,13 @@ async function ask(
   ];
   const key = createHash("sha256")
     .update(
-      JSON.stringify([c.model, c.baseURL, c.effort, c.temperature, messages]),
+      JSON.stringify([
+        c.openaiModel,
+        c.baseURL,
+        c.effort,
+        c.temperature,
+        messages,
+      ]),
     )
     .digest("hex");
   if (c.cache) {

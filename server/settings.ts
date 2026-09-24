@@ -3,17 +3,27 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
-import { callModel, config, parseJSON } from "./llm";
+import {
+  JEV_PLATFORM_KEYS,
+  callJev,
+  callModel,
+  config,
+  parseJSON,
+} from "./llm";
 
 const ENV_PATH = join(process.cwd(), ".env");
 
 export function publicConfig() {
   const c = config();
+  // Enough to recognise which key is set, never enough to use it.
+  const hint = (key: string) => (key ? `…${key.slice(-4)}` : "");
   return {
+    provider: c.provider,
     configured: Boolean(c.apiKey),
-    // Enough to recognise which key is set, never enough to use it.
-    keyHint: c.apiKey ? `…${c.apiKey.slice(-4)}` : "",
-    model: c.model,
+    keyHint: hint(c.openaiKey),
+    jevPlatform: c.jev.platform,
+    jevKeyHint: hint(c.jev.apiKey),
+    model: c.openaiModel,
     baseURL: c.baseURL,
     effort: c.effort,
     temperature: c.temperature ?? null,
@@ -27,6 +37,8 @@ export function publicConfig() {
 // they could smuggle in a second setting.
 const plain = /^[^\s"'`]*$/;
 export const settingsSchema = z.object({
+  provider: z.enum(["openai", "jev"]).optional(),
+  jevPlatform: z.enum(JEV_PLATFORM_KEYS).optional(),
   apiKey: z.string().trim().max(300).regex(plain).optional(),
   model: z
     .string()
@@ -51,8 +63,14 @@ function quote(v: string) {
 
 export async function updateConfig(patch: z.infer<typeof settingsSchema>) {
   const values: Record<string, string> = {};
-  // A blank key field means "keep the current key", so it can't be erased by accident.
-  if (patch.apiKey?.trim()) values.OPENAI_API_KEY = patch.apiKey.trim();
+  const provider = patch.provider ?? config().provider;
+  if (patch.provider !== undefined) values.LLM_PROVIDER = patch.provider;
+  if (patch.jevPlatform !== undefined) values.JEV_PLATFORM = patch.jevPlatform;
+  // A blank key field means "keep the current key", so it can't be erased by
+  // accident. Each service keeps its own key, so switching back loses nothing.
+  if (patch.apiKey?.trim())
+    values[provider === "jev" ? "JEV_API_KEY" : "OPENAI_API_KEY"] =
+      patch.apiKey.trim();
   if (patch.model !== undefined) values.OPENAI_MODEL = patch.model;
   if (patch.baseURL !== undefined)
     values.OPENAI_BASE_URL = patch.baseURL.replace(/\/+$/, "");
@@ -87,6 +105,31 @@ export async function updateConfig(patch: z.infer<typeof settingsSchema>) {
 /** A minimal real request, to confirm the key, address and model all work. */
 export async function testConnection(signal?: AbortSignal) {
   const start = performance.now();
+  if (config().provider === "jev") {
+    // Upstream's connection check: one question of each type on a tiny text.
+    const reply = await callJev(
+      {
+        state: "This is a connection test. The sky is blue.",
+        questions: {
+          color: {
+            type: "choice",
+            instructions: "What color is the sky in the text?",
+            criteria: { blue: null, red: null },
+          },
+          mentioned: {
+            type: "noul",
+            instructions: "Does the text mention the sky?",
+          },
+        },
+      },
+      signal,
+    );
+    return {
+      ok: typeof reply.answers.color === "object" && !!reply.answers.color,
+      model: reply.model,
+      latencyMs: Math.round(performance.now() - start),
+    };
+  }
   const reply = await callModel(
     [
       { role: "system", content: '只输出 JSON：{"ok": true}' },

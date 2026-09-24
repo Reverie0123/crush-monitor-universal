@@ -32,6 +32,8 @@ This version calls an OpenAI-compatible Chat Completions API (DeepSeek by defaul
 - [Get a DeepSeek API key](https://platform.deepseek.com/api_keys)
 - OpenAI or other compatible services work too: change the address and model in the settings page.
 
+**You can still use the original Jev model:** in the settings page, switch to **Jev（原版模型）**, pick a platform ([OpenRouter](https://openrouter.ai/settings/keys), Vercel AI Gateway or TypeSafe) and paste that platform's key. Jev returns calibrated probabilities but no written reasons; reply suggestions still use the DeepSeek / OpenAI key. Each service keeps its own key, so you can switch back and forth.
+
 ## Run locally
 
 Install Node.js 22.12+. Download or clone this repository, then in the project directory:
