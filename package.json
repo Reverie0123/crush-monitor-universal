@@ -35,7 +35,7 @@
     "vite": "^6.3.0"
   },
   "license": "MIT",
-  "description": "Local-first WeChat-style conversation analysis with your own DeepSeek / OpenAI-compatible API key (adapted from the original Jev-based Crush Monitor)",
+  "description": "Local-first WeChat-style conversation analysis with your own API key for any OpenAI-compatible model (adapted from the original Jev-based Crush Monitor)",
   "engines": {
     "node": ">=22.12.0"
   }

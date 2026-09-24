@@ -1,4 +1,4 @@
-# Crush 好感监控器（DeepSeek / OpenAI 改编版）
+# Crush 好感监控器（通用版）
 
 简体中文 · [English](README.en.md)
 

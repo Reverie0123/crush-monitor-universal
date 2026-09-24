@@ -1,4 +1,4 @@
-# Crush Monitor (DeepSeek / OpenAI edition)
+# Crush Monitor (Universal edition)
 
 [简体中文](README.md) · English
 

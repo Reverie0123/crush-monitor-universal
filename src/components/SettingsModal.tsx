@@ -122,7 +122,7 @@ export function SettingsModal({
         <ModelSettings onSaved={onConfig} locked={analysisRunning} />
       </details>
       <p className="app-version">
-        版本 {__APP_VERSION__} · DeepSeek / OpenAI 改编版
+        版本 {__APP_VERSION__} · 通用版
       </p>
     </Modal>
   );
