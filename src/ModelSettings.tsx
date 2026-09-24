@@ -68,11 +68,10 @@ export function ModelSettings({
   const [jevKey, setJevKey] = useState("");
   // Each model's price fields, kept separately so switching back and forth in
   // the form does not lose unsaved edits.
-  const [loadedPrices] = useState(() => ({
+  const [pricesBy, setPricesBy] = useState(() => ({
     openai: loadPrices("openai"),
     jev: loadPrices("jev"),
   }));
-  const [pricesBy, setPricesBy] = useState(loadedPrices);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -141,7 +140,7 @@ export function ModelSettings({
       // Only prices the user changed, so untouched ones keep following the
       // built-in defaults.
       for (const p of ["openai", "jev"] as const)
-        if (JSON.stringify(pricesBy[p]) !== JSON.stringify(loadedPrices[p]))
+        if (JSON.stringify(pricesBy[p]) !== JSON.stringify(loadPrices(p)))
           savePrices(pricesBy[p], p);
       onSaved?.(body);
       if (!test) {

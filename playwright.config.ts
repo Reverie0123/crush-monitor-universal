@@ -5,6 +5,8 @@ import { defineConfig } from "@playwright/test";
 // variable that is already set, so a developer's own .env (with real keys)
 // can't send test chats to a paid service.
 const PINNED = {
+  HOST: "127.0.0.1",
+  LLM_PARALLEL: "24",
   LLM_CACHE: "off",
   PRIVACY_MASK: "on",
   MASK_WORDS: "",
