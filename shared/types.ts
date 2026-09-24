@@ -106,7 +106,7 @@ export type AnalysisResponse = {
 };
 export const MODEL = "openai-chat";
 // Bumped whenever the request shape changes, so a stale server can say so.
-export const API_VERSION = "2026-09-24.3";
+export const API_VERSION = "2026-09-25.1";
 // Bumped when prompts or answer shapes change, so saved results are re-analyzed.
 export const RUBRIC = "crush-2026-09-24.llm-5";
 type RelationInfo = {

@@ -78,6 +78,10 @@ Only two-person text conversations are supported—not images, audio, ZIP/HTML e
 - Chats and results stay in this browser's local database. Text needed for analysis (after masking) is sent to your configured model service, billed to your account.
 - Never commit `.env`, `.cache/` or private conversations.
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) (in Chinese). Current version v2.1.0: switch back to the original Jev model, and long chats are sent in batches automatically.
+
 ## Development
 
 React + TypeScript + Vite + Express.
