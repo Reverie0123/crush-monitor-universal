@@ -625,7 +625,15 @@ async function jevSystemOne(
     questions: masker.deep(request.questions),
   };
   const key = createHash("sha256")
-    .update(JSON.stringify(["jev", c.jev.platform, c.jev.model, body]))
+    .update(
+      JSON.stringify([
+        "jev",
+        c.jev.platform,
+        c.jev.endpoint,
+        c.jev.model,
+        body,
+      ]),
+    )
     .digest("hex");
   const hit = c.cache ? await cacheGet(key) : undefined;
   const reply = hit

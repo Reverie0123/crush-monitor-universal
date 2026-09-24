@@ -68,10 +68,11 @@ export function ModelSettings({
   const [jevKey, setJevKey] = useState("");
   // Each model's price fields, kept separately so switching back and forth in
   // the form does not lose unsaved edits.
-  const [pricesBy, setPricesBy] = useState(() => ({
+  const [loadedPrices] = useState(() => ({
     openai: loadPrices("openai"),
     jev: loadPrices("jev"),
   }));
+  const [pricesBy, setPricesBy] = useState(loadedPrices);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -137,8 +138,11 @@ export function ModelSettings({
       setForm(body);
       setApiKey("");
       setJevKey("");
-      savePrices(pricesBy.openai, "openai");
-      savePrices(pricesBy.jev, "jev");
+      // Only prices the user changed, so untouched ones keep following the
+      // built-in defaults.
+      for (const p of ["openai", "jev"] as const)
+        if (JSON.stringify(pricesBy[p]) !== JSON.stringify(loadedPrices[p]))
+          savePrices(pricesBy[p], p);
       onSaved?.(body);
       if (!test) {
         setStatus("已保存，立即生效");
@@ -274,8 +278,6 @@ export function ModelSettings({
                 set({
                   jevPlatform: e.target.value as PublicConfig["jevPlatform"],
                 });
-                // A typed key belongs to the platform it was typed for.
-                setJevKey("");
               }}
             >
               {JEV_PLATFORMS.map((p) => (

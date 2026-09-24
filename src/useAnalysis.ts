@@ -316,8 +316,14 @@ export function useAnalysis() {
         // Overview and trend: the continuous stretch they read, without the
         // earlier event originals that are sent along with it.
         const read = job.messages.map((m) => at(m.id));
+        // Messages over 12,000 characters are never sent; they don't break
+        // the stretch.
+        const skipped = (a: number, b: number) =>
+          messages
+            .slice(a + 1, b)
+            .every((m) => Array.from(m.text).length > 12000);
         let i = read.length - 1;
-        while (i > 0 && read[i - 1] === read[i] - 1) i--;
+        while (i > 0 && skipped(read[i - 1], read[i])) i--;
         from = read[i];
         to = read.at(-1)!;
       }
