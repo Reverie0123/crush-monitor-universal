@@ -20,6 +20,7 @@ AI doesn't know your relationship or what happens outside the chat. Take the res
 - **Report export:** download a one-page HTML report.
 - **Timing and quotes:** reply gaps, late-night chats and WeChat quoted replies are understood; images, stickers, recalls and pats are shown as context only.
 - **Ten relationship types:** from "just met" to "cold war" and "exes", each with its own reading guidance.
+- **Two model choices:** DeepSeek / OpenAI by default, or the original Jev (via OpenRouter, Vercel or TypeSafe); keys and prices are kept separately for each.
 - **Your own key, cost shown:** runs locally with your own API credits and shows the estimated spend.
 - **Privacy masking:** phone numbers, emails, ID and card numbers, and words you choose are replaced with placeholders before sending.
 
@@ -73,7 +74,9 @@ Only two-person text conversations are supported—not images, audio, ZIP/HTML e
 ## Notes
 
 - The affection score combines six weighted dimensions. An explicit refusal that still applies limits the score. **It is not the probability that someone likes you.**
-- Each model request holds up to 2,000 messages / 60,000 characters. The overview reads the most recent ~1,950 messages; per-line analysis sees the previous 150 and next 20. Total history is limited only by browser storage.
+- With DeepSeek / OpenAI, each model request holds up to 2,000 messages / 60,000 characters and 9 requests run at once. The overview reads the most recent ~1,950 messages; per-line analysis sees the previous 150 and next 20. With Jev, the original limits apply: 500 messages / 12,000 characters, previous 80 messages, 2 requests at once. The page says so when the overview can't read the whole chat. Total history is limited only by browser storage.
+- Jev writes no reasons; reply suggestions need **Jev + DeepSeek / OpenAI** mode. DeepSeek / OpenAI and Jev each keep their own prices and bill calibration; Jev estimates are approximate.
+- After switching models, lines already analyzed keep their results; new lines and the overview use the new model. Model settings can't be saved while an analysis is running.
 - Model replies are cached in `.cache/` so re-analyzing the same content is free; you can clear or disable this in settings. The cache contains chat text—never commit it.
 - Chats and results stay in this browser's local database. Text needed for analysis (after masking) is sent to your configured model service, billed to your account.
 - Never commit `.env`, `.cache/` or private conversations.
@@ -84,14 +87,15 @@ See [CHANGELOG.md](CHANGELOG.md) (in Chinese). Current version v2.1.0: switch ba
 
 ## Development
 
-React + TypeScript + Vite + Express.
+React + TypeScript + Vite + Express, calling models through an OpenAI-compatible Chat Completions API or Jev's native API.
 
 ```sh
 npm run dev        # http://127.0.0.1:5178/
 npm test           # local tests; no model calls
-npm run check:live # real model check; uses your API credits
+npm run test:e2e   # UI tests in Edge with local stand-ins for DeepSeek and Jev; free
+npm run check:live # real model check with the model chosen in .env; uses your API credits
 ```
 
 ## License
 
-[MIT](LICENSE). Copyright of the original project belongs to its author. Not affiliated with WeChat, Tencent, TypeSafe, DeepSeek, OpenAI or any messaging platform mentioned here.
+[MIT](LICENSE). Copyright of the original project belongs to its author. Not affiliated with WeChat, Tencent, TypeSafe, DeepSeek, OpenAI, OpenRouter, Vercel or any messaging platform mentioned here.

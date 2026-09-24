@@ -40,8 +40,8 @@ export function DisclaimerModal({
         </p>
         <h3>免责</h3>
         <p>
-          本工具按「现状」提供，作者和改编者不对分析结果的准确性，以及因使用本工具产生的任何直接或间接后果承担责任。本项目与微信、腾讯、TypeSafe、DeepSeek
-          及 OpenAI 无隶属关系。
+          本工具按「现状」提供，作者和改编者不对分析结果的准确性，以及因使用本工具产生的任何直接或间接后果承担责任。本项目与微信、腾讯、TypeSafe、DeepSeek、OpenAI、OpenRouter
+          及 Vercel 无隶属关系。
         </p>
       </div>
       {accepted ? (
