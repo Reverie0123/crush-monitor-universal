@@ -19,21 +19,26 @@ import { pickTemperature } from "./temperature";
 
 // TypeSafe's Jev answers the same typed questions natively. It is sold
 // directly and through two gateways; all three take the same request body.
+// Each keeps its own key (the original project's variable names), so switching
+// platform never sends one platform's key to another.
 export const JEV_PLATFORMS = {
   typesafe: {
     name: "TypeSafe",
     endpoint: "https://api.typesafe.ai/v1/systemone",
     model: "jev-1.13.0",
+    keyEnv: "TYPESAFE_API_KEY",
   },
   openrouter: {
     name: "OpenRouter",
     endpoint: "https://openrouter.ai/api/alpha/decisions",
     model: "typesafe/jev-1.13",
+    keyEnv: "OPENROUTER_API_KEY",
   },
   vercel: {
     name: "Vercel AI Gateway",
     endpoint: "https://ai-gateway.vercel.sh/typesafe/v1/systemone",
     model: "typesafe-ai/jev",
+    keyEnv: "AI_GATEWAY_API_KEY",
   },
 } as const;
 export type JevPlatform = keyof typeof JEV_PLATFORMS;
@@ -56,7 +61,14 @@ export function config() {
   const jev = {
     platform,
     ...JEV_PLATFORMS[platform],
-    apiKey: env.JEV_API_KEY?.trim() ?? "",
+    apiKey: env[JEV_PLATFORMS[platform].keyEnv]?.trim() ?? "",
+    /** Which platforms have a key saved. */
+    keys: Object.fromEntries(
+      JEV_PLATFORM_KEYS.map((k) => [
+        k,
+        env[JEV_PLATFORMS[k].keyEnv]?.trim() ?? "",
+      ]),
+    ) as Record<JevPlatform, string>,
   };
   const provider = env.LLM_PROVIDER?.trim() === "jev" ? "jev" : "openai";
   // With Jev, reply suggestions come from the chat model only if asked for.
@@ -522,13 +534,16 @@ export function jevAnswer(q: Question, raw: unknown): Answer {
   };
 }
 
-/** One native Jev request, retried once on rate limits and server errors. */
+// One Jev call rarely takes long; a stuck one is abandoned and retried.
+const JEV_ATTEMPT_MS = 90_000;
+
+/** One native Jev request, retried up to twice on rate limits, server errors and timeouts. */
 export async function callJev(
   body: { state: EntryType; questions: Questions },
   signal?: AbortSignal,
 ) {
   const { jev } = config();
-  if (!jev.apiKey) throw new LLMError("JEV_API_KEY missing", 401);
+  if (!jev.apiKey) throw new LLMError(`${jev.keyEnv} missing`, 401);
   for (let attempt = 0; ; attempt++) {
     let response: Response;
     try {
@@ -540,10 +555,13 @@ export async function callJev(
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ ...body, model: jev.model }),
-        signal,
+        signal: signal
+          ? AbortSignal.any([signal, AbortSignal.timeout(JEV_ATTEMPT_MS)])
+          : AbortSignal.timeout(JEV_ATTEMPT_MS),
       });
     } catch (error) {
       if (signal?.aborted) throw error;
+      if ((error as Error).name === "TimeoutError" && attempt < 2) continue;
       throw new LLMError("network error", 502);
     }
     if (!response.ok) {
@@ -595,11 +613,19 @@ async function jevSystemOne(
   const reply = hit
     ? { ...hit, usage: ZERO }
     : await withSlot(() => callJev(body, signal));
+  const answers: Record<string, Answer> = {};
+  let answered = 0;
+  for (const [name, q] of Object.entries(request.questions)) {
+    const raw = reply.answers[name] as { type?: unknown } | undefined;
+    answers[name] = jevAnswer(q, raw);
+    if (raw?.type === q.type) answered++;
+  }
+  // A reply that answers nothing is a format problem, not "not enough
+  // evidence"; it is reported, and never cached.
+  if (!answered && Object.keys(request.questions).length)
+    throw new LLMError("Jev answered no question", 422);
   if (!hit && c.cache)
     await cachePut(key, { model: reply.model, answers: reply.answers });
-  const answers: Record<string, Answer> = {};
-  for (const [name, q] of Object.entries(request.questions))
-    answers[name] = jevAnswer(q, reply.answers[name]);
   return {
     model: reply.model,
     answers,

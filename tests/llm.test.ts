@@ -409,7 +409,8 @@ test("选 Jev 时发完整问题到所选平台，一次请求，打码照常", 
   env();
   process.env.LLM_PROVIDER = "jev";
   process.env.JEV_PLATFORM = "openrouter";
-  process.env.JEV_API_KEY = "jev-key";
+  process.env.JEV_PLATFORM = "openrouter";
+  process.env.OPENROUTER_API_KEY = "jev-key";
   try {
     const calls: { url: string; auth: string; body: any }[] = [];
     globalThis.fetch = (async (url: string, init?: RequestInit) => {
@@ -456,14 +457,15 @@ test("选 Jev 时发完整问题到所选平台，一次请求，打码照常", 
     assert.equal(result.usage.input_tokens, 500);
   } finally {
     process.env.LLM_PROVIDER = "openai";
-    delete process.env.JEV_API_KEY;
+    delete process.env.OPENROUTER_API_KEY;
   }
 });
 
 test("Jev + 其他模型时，测试连接两边都测；回复建议的 Key 坏了会说清楚", async () => {
   env();
   process.env.LLM_PROVIDER = "jev";
-  process.env.JEV_API_KEY = "jev-key";
+  process.env.JEV_PLATFORM = "openrouter";
+  process.env.OPENROUTER_API_KEY = "jev-key";
   process.env.JEV_SUGGEST = "on";
   let chatOk = true;
   globalThis.fetch = (async (url: string) => {
@@ -502,7 +504,32 @@ test("Jev + 其他模型时，测试连接两边都测；回复建议的 Key 坏
     assert.equal((await testConnection()).ok, true);
   } finally {
     process.env.LLM_PROVIDER = "openai";
-    delete process.env.JEV_API_KEY;
+    delete process.env.OPENROUTER_API_KEY;
     delete process.env.JEV_SUGGEST;
+  }
+});
+
+test("Jev 一题都没答上时报格式错误，而不是悄悄当成信息不足", async () => {
+  env();
+  process.env.LLM_PROVIDER = "jev";
+  process.env.JEV_PLATFORM = "openrouter";
+  process.env.OPENROUTER_API_KEY = "jev-key";
+  let calls = 0;
+  globalThis.fetch = (async () => {
+    calls++;
+    return new Response(JSON.stringify({ answers: { mood: { oops: 1 } } }));
+  }) as typeof fetch;
+  try {
+    await assert.rejects(
+      systemOne({
+        state: "聊天",
+        questions: { mood: choice("情绪", { 开心: null, 难过: null }) },
+      }),
+      (e: { status?: number }) => e.status === 422,
+    );
+    assert.equal(calls, 1);
+  } finally {
+    process.env.LLM_PROVIDER = "openai";
+    delete process.env.OPENROUTER_API_KEY;
   }
 });

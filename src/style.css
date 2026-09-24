@@ -549,11 +549,15 @@ h2 {
   color: #7a817c;
   font-size: 11px;
 }
+.pending-run .batch-hint {
+  color: #9a6b1f;
+  cursor: help;
+}
 .analysis-status .batch-note {
   flex-basis: 100%;
   color: #9a6b1f;
 }
-.analysis-status:has(.batch-note) {
+.analysis-status {
   flex-wrap: wrap;
   row-gap: 2px;
 }
@@ -927,6 +931,13 @@ blockquote {
   }
   .composer {
     padding-inline: 14px;
+  }
+  /* The status gets its own line above the buttons instead of a sliver beside them. */
+  .composer-bottom {
+    flex-wrap: wrap;
+  }
+  .composer-feedback {
+    flex-basis: 100%;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1484,8 +1495,9 @@ blockquote {
 
 .pending-run {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 4px 6px;
   color: #6b716d;
 }
 .analysis-status .start-run {

@@ -91,7 +91,8 @@ export default function App() {
   const [note, setNote] = useState(""),
     [noteDraft, setNoteDraft] = useState(""),
     [configured, setConfigured] = useState(true),
-    [provider, setProvider] = useState<PublicConfig["provider"]>("openai"),
+    // Null until the settings load: plans depend on the model's request limits.
+    [provider, setProvider] = useState<PublicConfig["provider"] | null>(null),
     // Why reply suggestions are unavailable; empty when they are available.
     [noSuggest, setNoSuggest] = useState(""),
     [highlight, setHighlight] = useState<string | null>(null),
@@ -118,7 +119,8 @@ export default function App() {
     apiFetch("/api/config")
       .then((r) => r.json())
       .then(applyConfig)
-      .catch(() => {});
+      // Without the server nothing can run anyway; plan with the defaults.
+      .catch(() => setProvider("openai"));
   }, []);
 
   // The disclaimer must be acknowledged once per browser before any analysis.
@@ -305,7 +307,7 @@ export default function App() {
       : null;
   // What the next run would analyze and cost; nothing is sent to compute it.
   const pending = useMemo(
-    () => (busy || !ready ? null : a.plan(messages, relation)),
+    () => (busy || !ready || !provider ? null : a.plan(messages, relation)),
     // a.plan reads refs that change together with these values.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [

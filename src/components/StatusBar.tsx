@@ -133,10 +133,16 @@ export function StatusBar({
             {pending.lines
               ? `待分析 ${pending.lines.toLocaleString()} 条`
               : "只做整体分析"}
-            {pending.batched &&
-              `（超过单次上限 ${limitText()}，将分批上传；整体好感只读最近的部分）`}{" "}
+            {pending.batched && (
+              <span
+                className="batch-hint"
+                title={`一次最多读 ${limitText()}：逐句分析和走势分批覆盖全部消息，整体好感只读最近的部分。`}
+              >
+                （超过单次上限，将分批上传）
+              </span>
+            )}{" "}
             · 预计{formatYuan(spend.estimateCost(pending.estimate))}
-            {requestLimits.provider === "jev" && "（Jev 按平台计费，仅供参考）"}
+            {requestLimits.provider === "jev" && "（Jev 以平台账单为准）"}
             <button
               className="start-run"
               disabled={!configured}

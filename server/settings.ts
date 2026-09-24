@@ -4,6 +4,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
 import {
+  JEV_PLATFORMS,
   JEV_PLATFORM_KEYS,
   callJev,
   callModel,
@@ -22,7 +23,10 @@ export function publicConfig() {
     configured: Boolean(c.apiKey),
     keyHint: hint(c.openaiKey),
     jevPlatform: c.jev.platform,
-    jevKeyHint: hint(c.jev.apiKey),
+    /** Per platform, since each keeps its own key. */
+    jevKeyHints: Object.fromEntries(
+      Object.entries(c.jev.keys).map(([k, v]) => [k, hint(v)]),
+    ),
     jevSuggest: c.jevSuggest,
     suggest: c.suggest,
     model: c.openaiModel,
@@ -74,7 +78,10 @@ export async function updateConfig(patch: z.infer<typeof settingsSchema>) {
   // A blank key field means "keep the current key", so it can't be erased by
   // accident. Each service keeps its own key, so switching back loses nothing.
   if (patch.apiKey?.trim()) values.OPENAI_API_KEY = patch.apiKey.trim();
-  if (patch.jevApiKey?.trim()) values.JEV_API_KEY = patch.jevApiKey.trim();
+  // A Jev key belongs to the platform chosen in the same form.
+  if (patch.jevApiKey?.trim())
+    values[JEV_PLATFORMS[patch.jevPlatform ?? config().jev.platform].keyEnv] =
+      patch.jevApiKey.trim();
   if (patch.model !== undefined) values.OPENAI_MODEL = patch.model;
   if (patch.baseURL !== undefined)
     values.OPENAI_BASE_URL = patch.baseURL.replace(/\/+$/, "");

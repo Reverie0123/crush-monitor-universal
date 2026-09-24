@@ -7,7 +7,7 @@ export type PublicConfig = {
   configured: boolean;
   keyHint: string;
   jevPlatform: "typesafe" | "openrouter" | "vercel";
-  jevKeyHint: string;
+  jevKeyHints: Record<"typesafe" | "openrouter" | "vercel", string>;
   /** With Jev: whether the chat model also writes reply suggestions. */
   jevSuggest: boolean;
   /** Whether reply suggestions are available with the saved settings. */
@@ -85,6 +85,15 @@ export function ModelSettings({
     JEV_PLATFORMS.find((p) => p.key === form.jevPlatform) ?? JEV_PLATFORMS[0];
 
   async function save(test = false) {
+    // OpenRouter keys are recognisable; catch one pasted under another platform.
+    if (
+      jev &&
+      jevKey.trim().startsWith("sk-or-") &&
+      form!.jevPlatform !== "openrouter"
+    ) {
+      setStatus("这看起来是 OpenRouter 的 Key，请把调用平台选成 OpenRouter");
+      return;
+    }
     setBusy(true);
     setStatus(test ? "正在保存并测试连接…" : "正在保存…");
     try {
@@ -268,7 +277,8 @@ export function ModelSettings({
             </a>{" "}
             申请 Key。Jev 是原作者使用的 TypeSafe
             判断模型，给出的概率经过专门校准，但不写判断理由。一次最多读 500 条
-            / 12,000 字，更长的聊天会自动分批上传。Jev
+            / 12,000
+            字，更长的聊天会自动分批上传（逐句分析覆盖全部消息，整体好感只读最近的部分）。Jev
             按平台规则计费，下面的单价估算仅供参考。
           </p>
           <label className="field">
@@ -278,8 +288,8 @@ export function ModelSettings({
               autoComplete="off"
               value={jevKey}
               placeholder={
-                saved?.jevKeyHint
-                  ? `已设置（${saved.jevKeyHint}），留空则不修改`
+                saved?.jevKeyHints[form.jevPlatform]
+                  ? `已设置（${saved.jevKeyHints[form.jevPlatform]}），留空则不修改`
                   : "粘贴你的 API Key"
               }
               onChange={(e) => setJevKey(e.target.value)}
