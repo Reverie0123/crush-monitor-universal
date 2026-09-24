@@ -338,7 +338,7 @@ export default function App() {
         ? spend.estimateCost(a.retryEstimate(incomplete, messages, relation))
         : 0,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [incomplete.join(), messages, relation, spend.prices],
+    [incomplete.join(), messages, relation, spend.prices, provider],
   );
 
   function load(ms: Message[]) {
@@ -682,6 +682,9 @@ export default function App() {
       )}
       {settings && (
         <SettingsModal
+          // Changing the model mid-run would send the rest of it to another
+          // model, sized for the old one.
+          analysisRunning={busy || a.retrying.length > 0 || !!a.reconsidering}
           relation={relation}
           setRelation={setRelation}
           note={note}

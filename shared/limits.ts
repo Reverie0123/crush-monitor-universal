@@ -71,8 +71,12 @@ export function overviewBudget() {
 /** Whether the overview cannot read the whole chat, so it is sent in pieces. */
 export function overLimit(texts: string[]) {
   const budget = overviewBudget();
+  // Single messages over 12,000 characters are never sent, so they don't count.
+  const lengths = texts
+    .map((t) => Array.from(t).length)
+    .filter((n) => n <= 12000);
   return (
-    texts.length > budget.count ||
-    texts.reduce((n, t) => n + Array.from(t).length, 0) > budget.chars
+    lengths.length > budget.count ||
+    lengths.reduce((a, b) => a + b, 0) > budget.chars
   );
 }

@@ -533,3 +533,70 @@ test("Jev 一题都没答上时报格式错误，而不是悄悄当成信息不�
     delete process.env.OPENROUTER_API_KEY;
   }
 });
+
+test("Jev 回复读到一半断开会重试，而不是报格式错误", async () => {
+  env();
+  process.env.LLM_PROVIDER = "jev";
+  process.env.JEV_PLATFORM = "openrouter";
+  process.env.OPENROUTER_API_KEY = "jev-key";
+  let calls = 0;
+  globalThis.fetch = (async () => {
+    calls++;
+    if (calls === 1)
+      // Headers arrive, then the body fails mid-way.
+      return new Response(
+        new ReadableStream({
+          start(c) {
+            c.enqueue(new TextEncoder().encode('{"answers": {'));
+            c.error(new Error("connection reset"));
+          },
+        }),
+      );
+    return new Response(
+      JSON.stringify({
+        answers: {
+          mood: {
+            type: "choice",
+            choice: "开心",
+            confidence: 0.9,
+            probabilities: { 开心: 0.9, 难过: 0.1 },
+          },
+        },
+      }),
+    );
+  }) as typeof fetch;
+  try {
+    const r = await systemOne({
+      state: "聊天",
+      questions: { mood: choice("情绪", { 开心: null, 难过: null }) },
+    });
+    assert.equal(calls, 2);
+    assert.equal(
+      r.answers.mood.type === "choice" && r.answers.mood.choice,
+      "开心",
+    );
+  } finally {
+    process.env.LLM_PROVIDER = "openai";
+    delete process.env.OPENROUTER_API_KEY;
+  }
+});
+
+test("聊天模型回了 JSON 但没有 answers 时重问，不会当成全部信息不足", async () => {
+  env();
+  let n = 0;
+  const calls = fakeModel((questions) => {
+    n++;
+    if (n === 1) return "{}";
+    return JSON.stringify({
+      answers: Object.fromEntries(
+        Object.keys(questions).map((k) => [k, { r: "理由", yes: 0.9 }]),
+      ),
+    });
+  });
+  const r = await systemOne({
+    state: "聊天",
+    questions: { q: noul("拒绝了吗") },
+  });
+  assert.equal(calls.length, 2);
+  assert.equal(r.answers.q.type === "noul" && r.answers.q.noul, 0.9);
+});

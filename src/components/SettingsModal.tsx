@@ -22,6 +22,7 @@ export function SettingsModal({
   updateAvatars,
   configured,
   onConfig,
+  analysisRunning,
   on,
   close,
 }: {
@@ -38,6 +39,7 @@ export function SettingsModal({
   updateAvatars: (change: (old: Avatars) => Avatars) => void;
   configured: boolean;
   onConfig: (c: PublicConfig) => void;
+  analysisRunning: boolean;
   on: { swap: () => void; clear: () => void; disclaimer: () => void };
   close: () => void;
 }) {
@@ -117,7 +119,7 @@ export function SettingsModal({
       </details>
       <details className="settings-section" open={!configured}>
         <summary>模型与接口</summary>
-        <ModelSettings onSaved={onConfig} />
+        <ModelSettings onSaved={onConfig} locked={analysisRunning} />
       </details>
       <p className="app-version">
         版本 {__APP_VERSION__} · DeepSeek / OpenAI 改编版

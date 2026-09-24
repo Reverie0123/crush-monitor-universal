@@ -281,6 +281,13 @@ test("Jev 模式：长聊天自动分批，每次不超过原版上限，并发�
   await expect(page.locator(".batch-note")).toContainText(
     /分批上传中：正在分析第 [\d,]+–[\d,]+ 条，共 700 条/,
   );
+  // Model settings can't be saved mid-run: that would switch models under it.
+  await page.getByRole("button", { name: "更多聊天设置" }).click();
+  const settings = page.getByRole("dialog", { name: "聊天设置" });
+  await settings.getByText("模型与接口").click();
+  await expect(settings.getByText("正在分析，停止或完成后")).toBeVisible();
+  await expect(settings.getByRole("button", { name: "仅保存" })).toBeDisabled();
+  await page.keyboard.press("Escape");
   await expect(page.getByText("分析完成")).toBeVisible({ timeout: 90_000 });
   const stats = await jevStats(page);
   expect(stats.rejected).toEqual([]);

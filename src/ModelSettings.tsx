@@ -56,22 +56,24 @@ const JEV_PLATFORMS = [
 
 export function ModelSettings({
   onSaved,
+  locked = false,
 }: {
   onSaved?: (c: PublicConfig) => void;
+  /** An analysis is running: saving would switch models under it. */
+  locked?: boolean;
 }) {
   const [saved, setSaved] = useState<PublicConfig | null>(null);
   const [form, setForm] = useState<PublicConfig | null>(null);
   const [apiKey, setApiKey] = useState("");
   const [jevKey, setJevKey] = useState("");
-  const [prices, setPrices] = useState<Prices>(loadPrices);
+  // Each model's price fields, kept separately so switching back and forth in
+  // the form does not lose unsaved edits.
+  const [pricesBy, setPricesBy] = useState(() => ({
+    openai: loadPrices("openai"),
+    jev: loadPrices("jev"),
+  }));
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
-
-  // The price fields belong to the model selected in the form.
-  const formProvider = form?.provider;
-  useEffect(() => {
-    if (formProvider) setPrices(loadPrices(formProvider));
-  }, [formProvider]);
 
   useEffect(() => {
     apiFetch("/api/config")
@@ -87,6 +89,11 @@ export function ModelSettings({
     return <p className="settings-status">{status || "正在读取设置…"}</p>;
   const set = (patch: Partial<PublicConfig>) => setForm({ ...form, ...patch });
   const jev = form.provider === "jev";
+  // The chat-model fields are shown (and sent) only when that model is used.
+  const usesChat = !jev || form.jevSuggest;
+  const prices = pricesBy[form.provider];
+  const setPrices = (p: Prices) =>
+    setPricesBy((all) => ({ ...all, [form.provider]: p }));
   const platform =
     JEV_PLATFORMS.find((p) => p.key === form.jevPlatform) ?? JEV_PLATFORMS[0];
 
@@ -109,8 +116,9 @@ export function ModelSettings({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
-          ...(jevKey.trim() ? { jevApiKey: jevKey.trim() } : {}),
+          // Only keys typed into fields that are on screen.
+          ...(usesChat && apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
+          ...(jev && jevKey.trim() ? { jevApiKey: jevKey.trim() } : {}),
           provider: form!.provider,
           jevPlatform: form!.jevPlatform,
           jevSuggest: form!.jevSuggest,
@@ -129,7 +137,8 @@ export function ModelSettings({
       setForm(body);
       setApiKey("");
       setJevKey("");
-      savePrices(prices, form!.provider);
+      savePrices(pricesBy.openai, "openai");
+      savePrices(pricesBy.jev, "jev");
       onSaved?.(body);
       if (!test) {
         setStatus("已保存，立即生效");
@@ -215,24 +224,22 @@ export function ModelSettings({
           </select>
         </label>
       </div>
-      {!jev && (
-        <label className="field">
-          随机度（temperature，留空用默认；越低结果越稳定）
-          <input
-            type="number"
-            min={0}
-            max={2}
-            step={0.1}
-            value={form.temperature ?? ""}
-            onChange={(e) =>
-              set({
-                temperature:
-                  e.target.value === "" ? null : Number(e.target.value),
-              })
-            }
-          />
-        </label>
-      )}
+      <label className="field">
+        随机度（temperature，留空用默认；越低结果越稳定）
+        <input
+          type="number"
+          min={0}
+          max={2}
+          step={0.1}
+          value={form.temperature ?? ""}
+          onChange={(e) =>
+            set({
+              temperature:
+                e.target.value === "" ? null : Number(e.target.value),
+            })
+          }
+        />
+      </label>
     </>
   );
 
@@ -263,11 +270,13 @@ export function ModelSettings({
             Jev 调用平台
             <select
               value={form.jevPlatform}
-              onChange={(e) =>
+              onChange={(e) => {
                 set({
                   jevPlatform: e.target.value as PublicConfig["jevPlatform"],
-                })
-              }
+                });
+                // A typed key belongs to the platform it was typed for.
+                setJevKey("");
+              }}
             >
               {JEV_PLATFORMS.map((p) => (
                 <option value={p.key} key={p.key}>
@@ -371,18 +380,22 @@ export function ModelSettings({
         ))}
         <button
           className="text-button"
-          onClick={() => setPrices(DEFAULT_PRICES)}
+          onClick={() => setPrices({ ...DEFAULT_PRICES })}
         >
           恢复默认
         </button>
       </fieldset>
       <div className="settings-actions">
-        <button className="primary" disabled={busy} onClick={() => save(true)}>
+        <button
+          className="primary"
+          disabled={busy || locked}
+          onClick={() => save(true)}
+        >
           保存并测试连接
         </button>
         <button
           className="secondary"
-          disabled={busy}
+          disabled={busy || locked}
           onClick={() => save(false)}
         >
           仅保存
@@ -391,6 +404,11 @@ export function ModelSettings({
           清除本地缓存
         </button>
       </div>
+      {locked && (
+        <p className="settings-note">
+          正在分析，停止或完成后才能保存模型设置。
+        </p>
+      )}
       {status && (
         <p className="settings-status" role="status">
           {status}

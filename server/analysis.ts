@@ -109,7 +109,8 @@ export async function analyze(
 ): Promise<AnalysisResponse> {
   const start = performance.now();
   const payload = buildRequest(input);
-  // Chat models answer all questions in one generation, so allow more time than Jev did.
+  // Chat models answer all questions in one generation, and Jev retries stuck
+  // calls, so allow a generous deadline.
   const deadline = AbortSignal.timeout(180000);
   const result = await systemOne(
     payload,

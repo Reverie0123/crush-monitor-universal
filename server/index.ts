@@ -95,14 +95,13 @@ app.post("/api/config/test", async (_req, res) => {
   try {
     res.json(await testConnection(AbortSignal.timeout(30000)));
   } catch (error) {
-    const code = Number((error as { status?: number }).status) || 502;
+    const code = Number((error as { status?: number }).status);
     res.status(200).json({
       ok: false,
-      error: errorText(
-        code,
-        (error as Error).message,
-        config().provider === "jev",
-      ),
+      // A timeout here has no status; it is about the connection, not an analysis.
+      error: code
+        ? errorText(code, (error as Error).message, config().provider === "jev")
+        : "30 秒内没有连上，请检查网络、Key 和设置后重试",
     });
   }
 });
@@ -130,6 +129,7 @@ const JEV_ERRORS: Record<number, string> = {
   402: "调用 Jev 的平台余额不足，请到该平台充值后重试",
   403: "没有调用 Jev 的权限：用 Vercel 调用需要先在 Vercel 绑定信用卡；其他平台请检查 Key 的权限",
   404: "Jev 接口暂时不可用，可以在设置里换一个调用平台试试",
+  502: "连不上 Jev 的调用平台或请求超时，请检查网络后重试",
 };
 function errorText(code: number, detail?: string, jev = false) {
   return (
@@ -205,10 +205,13 @@ app.post("/api/analyze", async (req, res) => {
   res.on("close", () => {
     if (!res.writableEnded) controller.abort();
   });
+  // Errors are explained for the model this request used, even if the
+  // settings change while it runs.
+  const jev = config().provider === "jev";
   try {
     res.json(await analyze(valid.data, controller.signal));
   } catch (error) {
-    fail(res, error, controller.signal.aborted, config().provider === "jev");
+    fail(res, error, controller.signal.aborted, jev);
   } finally {
     active--;
   }

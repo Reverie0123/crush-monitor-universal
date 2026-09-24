@@ -120,7 +120,9 @@ export function LineDetail({
               {!noSuggest ? (
                 <button
                   className="secondary"
-                  disabled={suggesting || !configured}
+                  // Availability is noSuggest's job: suggestions use the chat model's
+                  // key, which may be set even when the analysis model's is not.
+                  disabled={suggesting}
                   onClick={onSuggest}
                 >
                   <Sparkles size={15} />

@@ -36,27 +36,35 @@ export function useSpend(a: Analysis) {
   const [budget, setBudgetState] = useState(loadBudget);
   const [estimateFactor, setEstimateFactor] = useState(loadEstimateFactor);
   const [capped, setCapped] = useState(false);
-  const run = useRef<{ usage: UsageTotal; estimate: Estimate | null } | null>(
-    null,
-  );
+  const run = useRef<{
+    usage: UsageTotal;
+    estimate: Estimate | null;
+    /** The model the run was planned for. */
+    provider: string;
+  } | null>(null);
   const busy = a.status === "loading";
 
   /** Call right before starting a run the user confirmed from an estimate. */
   function begin(estimate: Estimate | null) {
-    run.current = { usage: a.usage, estimate };
+    run.current = {
+      usage: a.usage,
+      estimate,
+      provider: requestLimits.provider,
+    };
     setCapped(false);
   }
   useEffect(() => {
     // Runs started elsewhere (e.g. retrying lines) are still tracked for the cap.
-    if (busy && !run.current) run.current = { usage: a.usage, estimate: null };
+    if (busy && !run.current)
+      run.current = {
+        usage: a.usage,
+        estimate: null,
+        provider: requestLimits.provider,
+      };
     if (!busy && run.current) {
-      const { usage, estimate } = run.current;
+      const { usage, estimate, provider } = run.current;
       // The learned factor corrects chat-model estimates; Jev runs would skew it.
-      if (
-        a.status === "complete" &&
-        estimate &&
-        requestLimits.provider === "openai"
-      )
+      if (a.status === "complete" && estimate && provider === "openai")
         setEstimateFactor((f) =>
           learnEstimateFactor(
             f,
@@ -67,6 +75,10 @@ export function useSpend(a: Analysis) {
       run.current = null;
     }
   }, [busy, a.status]);
+
+  // Learned from chat-model runs only, so it only corrects chat-model estimates.
+  const factor = () =>
+    requestLimits.provider === "openai" ? estimateFactor : 1;
 
   const runUsage =
     busy && run.current ? diff(a.usage, run.current.usage) : NO_USAGE;
@@ -93,11 +105,11 @@ export function useSpend(a: Analysis) {
     spent: cost(a.usage, prices),
     runCost,
     runEstimate: run.current?.estimate
-      ? cost(asUsage(run.current.estimate), prices) * estimateFactor
+      ? cost(asUsage(run.current.estimate), prices) * factor()
       : null,
     /** Estimated yuan for a planned run, corrected by what past runs taught us. */
-    estimateCost: (e: Estimate) => cost(asUsage(e), prices) * estimateFactor,
-    estimateFactor,
+    estimateCost: (e: Estimate) => cost(asUsage(e), prices) * factor(),
+    estimateFactor: factor(),
     begin,
     /** The run never started: forget its baseline so the cap and learning stay accurate. */
     abandon: () => {

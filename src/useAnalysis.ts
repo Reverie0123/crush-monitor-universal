@@ -305,9 +305,23 @@ export function useAnalysis() {
     const position = new Map(messages.map((m, i) => [m.id, i]));
     const show = (job: AnalysisRequest) => {
       if (!batched || rev.current !== revision || !job.messages.length) return;
-      const from = (position.get(job.messages[0].id) ?? 0) + 1;
-      const to = (position.get(job.messages.at(-1)!.id) ?? 0) + 1;
-      setProgress((p) => ({ ...p, range: [from, to] }));
+      const at = (id: string) => position.get(id) ?? 0;
+      let from: number, to: number;
+      if (job.targetIds.length) {
+        // Line jobs: the lines being judged, not their surrounding context.
+        const ids = job.targetIds.map(at);
+        from = Math.min(...ids);
+        to = Math.max(...ids);
+      } else {
+        // Overview and trend: the continuous stretch they read, without the
+        // earlier event originals that are sent along with it.
+        const read = job.messages.map((m) => at(m.id));
+        let i = read.length - 1;
+        while (i > 0 && read[i - 1] === read[i] - 1) i--;
+        from = read[i];
+        to = read.at(-1)!;
+      }
+      setProgress((p) => ({ ...p, range: [from + 1, to + 1] }));
     };
     setProgress({
       done: 0,

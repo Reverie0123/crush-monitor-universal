@@ -212,3 +212,13 @@ test("整体判断读不完整段聊天时一定提示分批，不会悄悄截�
     setRequestLimits(CHAT_LIMITS);
   }
 });
+
+test("超过 12,000 字的单条消息本来就不发送，不会触发分批提示", () => {
+  setRequestLimits(JEV_LIMITS);
+  try {
+    assert.ok(!overLimit(["短消息", "x".repeat(12001), "另一条"]));
+    assert.ok(overLimit(["x".repeat(9500)]));
+  } finally {
+    setRequestLimits(CHAT_LIMITS);
+  }
+});

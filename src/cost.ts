@@ -38,7 +38,7 @@ export function loadPrices(
   } catch {
     // Private windows may block storage; defaults are fine.
   }
-  return DEFAULT_PRICES;
+  return { ...DEFAULT_PRICES };
 }
 export function savePrices(
   p: Prices,

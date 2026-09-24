@@ -135,7 +135,9 @@ export async function testConnection(signal?: AbortSignal) {
       },
       signal,
     );
-    const ok = typeof reply.answers.color === "object" && !!reply.answers.color;
+    const ok =
+      (reply.answers.color as { type?: unknown } | undefined)?.type ===
+      "choice";
     const latencyMs = Math.round(performance.now() - start);
     if (!ok || !config().suggest) return { ok, model: reply.model, latencyMs };
     // Jev + chat model: the reply-suggestion key must work too.

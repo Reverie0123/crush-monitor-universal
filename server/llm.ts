@@ -536,8 +536,9 @@ export function jevAnswer(q: Question, raw: unknown): Answer {
   };
 }
 
-// One Jev call rarely takes long; a stuck one is abandoned and retried.
-const JEV_ATTEMPT_MS = 90_000;
+// One Jev call rarely takes long; a stuck one is abandoned and retried. Three
+// attempts plus the waits between them fit inside the 180 s analysis deadline.
+const JEV_ATTEMPT_MS = 55_000;
 
 /** One native Jev request, retried up to twice on rate limits, server errors and timeouts. */
 export async function callJev(
@@ -577,11 +578,26 @@ export async function callJev(
       }
       throw new LLMError(`${jev.name} API ${response.status}`, response.status);
     }
-    const data = (await response.json().catch(() => null)) as {
+    // The body can still time out or drop after the headers arrived: that is a
+    // network problem to retry, not a malformed reply.
+    let text: string;
+    try {
+      text = await response.text();
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      if (attempt < 2) continue;
+      throw new LLMError("network error", 502);
+    }
+    let data: {
       model?: string;
       answers?: Record<string, unknown>;
       usage?: { input_tokens?: number; output_tokens?: number };
-    } | null;
+    } | null = null;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      // Reported below as a reply without answers.
+    }
     if (!data?.answers || typeof data.answers !== "object")
       throw new LLMError(`${jev.name} returned no answers`, 422);
     return {
@@ -744,9 +760,13 @@ async function ask(
     );
     return retry(new LLMError("model returned invalid JSON", 422));
   }
+  // Valid JSON without an answers object is as useless as broken JSON: retry
+  // it rather than cache a reply that leaves every question unanswered.
+  if (!parsed.answers || typeof parsed.answers !== "object")
+    return retry(new LLMError("model reply has no answers", 422));
   const result: ParsedReply = {
     model: reply.model,
-    answers: (parsed.answers as Record<string, unknown>) ?? {},
+    answers: parsed.answers as Record<string, unknown>,
     context: typeof parsed.context === "string" ? parsed.context : undefined,
   };
   if (c.cache) await cachePut(key, result);

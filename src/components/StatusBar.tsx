@@ -138,7 +138,9 @@ export function StatusBar({
                 className="batch-hint"
                 title={`一次最多读 ${limitText()}：逐句分析和走势分批覆盖全部消息，整体好感只读最近的部分。`}
               >
-                （超过单次上限，将分批上传）
+                {pending.lines > requestLimits.batch
+                  ? "（超过单次上限，将分批上传）"
+                  : "（超过单次上限，整体只读最近部分）"}
               </span>
             )}{" "}
             · 预计{formatYuan(spend.estimateCost(pending.estimate))}
