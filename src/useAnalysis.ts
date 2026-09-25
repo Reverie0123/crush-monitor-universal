@@ -29,7 +29,7 @@ import {
 } from "../shared/types";
 import type { SavedConversation, Trend } from "./storage";
 import { overLimit, requestLimits } from "../shared/limits";
-import { currentLang, errorText, messages as currentText } from "./i18n";
+import { TextError, currentLang, errorOf, errorText, type Text } from "./i18n";
 type Progress = {
   done: number;
   total: number;
@@ -94,7 +94,7 @@ export function useAnalysis() {
     [status, setStatus] = useState<"idle" | "loading" | "complete" | "error">(
       "idle",
     ),
-    [error, setError] = useState(""),
+    [error, setErrorState] = useState<Text>(""),
     [progress, setProgress] = useState<Progress>(IDLE),
     [latency, setLatency] = useState(0),
     [analyzedCount, setAnalyzedCount] = useState(0),
@@ -107,6 +107,8 @@ export function useAnalysis() {
     [reconsidering, setReconsidering] = useState<string | null>(null),
     [retrying, setRetrying] = useState<string[]>([]);
   const note = useRef("");
+  // Wrapped so a Text function is stored, not called as a state updater.
+  const setError = (x: Text) => setErrorState(() => x);
   const rev = useRef(0),
     controller = useRef<AbortController | null>(null),
     prior = useRef<RunState["prior"]>(null),
@@ -119,6 +121,7 @@ export function useAnalysis() {
 
   const runState = (): RunState => ({
     prior: prior.current,
+    language: requestLimits.provider === "jev" ? undefined : currentLang(),
     processed: processed.current,
     stale: staleRef.current,
     lines: savedLines.current,
@@ -173,6 +176,7 @@ export function useAnalysis() {
       messages: s.messages,
       relation: s.analyzedWith?.relation ?? s.relation,
       note: s.analyzedWith?.note ?? note.current,
+      language: s.analyzedWith?.language,
     };
     // Spend is real money already paid, so it survives a rubric change.
     setUsage(s.usage ?? NO_USAGE);
@@ -199,7 +203,10 @@ export function useAnalysis() {
     for (let attempt = 0; attempt < 4; attempt++) {
       const response = await apiFetch("/api/analyze", {
         method: "POST",
-        body: JSON.stringify({ ...job, language: currentLang() }),
+        body: JSON.stringify({
+          ...job,
+          language: job.language ?? currentLang(),
+        }),
         signal,
       });
       if ([429, 529].includes(response.status) && attempt < 3) {
@@ -214,7 +221,7 @@ export function useAnalysis() {
       }
       const body = await response.json();
       if (!response.ok)
-        throw new Error(errorText(body, currentText().errors.analysisFailed));
+        throw new TextError(errorText(body, (t) => t.errors.analysisFailed));
       data = body;
       break;
     }
@@ -223,9 +230,9 @@ export function useAnalysis() {
       data.revision !== job.revision ||
       data.rubricVersion !== RUBRIC
     )
-      throw new Error(currentText().errors.revisionMismatch);
+      throw new TextError((t) => t.errors.revisionMismatch);
     if ((await sha256(requestContextKey(job))) !== data.contextHash)
-      throw new Error(currentText().errors.contextMismatch);
+      throw new TextError((t) => t.errors.contextMismatch);
     const u = data.usage;
     setUsage((t) => ({
       input: t.input + u.input_tokens,
@@ -289,14 +296,16 @@ export function useAnalysis() {
       setPeriods([]);
     }
     markStale(false);
-    prior.current = { messages, relation, note: note.current };
+    // One language for the whole run, even if the page switches mid-way.
+    const language = currentLang();
+    prior.current = { messages, relation, note: note.current, language };
     commitLines(plan.lines);
     commitEvents(plan.events);
     const jobs = [...plan.jobs];
     const first = overviewJob(messages, relation, revision, plan.events);
     if (!first.messages.length) {
       setStatus("error");
-      setError(currentText().errors.nothingToAnalyze);
+      setError((t) => t.errors.nothingToAnalyze);
       // Nothing was sent; lets the caller drop what it prepared for this run.
       return false;
     }
@@ -343,8 +352,10 @@ export function useAnalysis() {
       if (rev.current === revision)
         setProgress((p) => ({ ...p, done: p.done + 1 }));
     };
-    const finish = (job: AnalysisRequest) =>
-      finishJob(job, note.current, savedCorrections.current);
+    const finish = (job: AnalysisRequest) => ({
+      ...finishJob(job, note.current, savedCorrections.current),
+      language,
+    });
     async function safely(job: AnalysisRequest) {
       show(job);
       try {
@@ -359,7 +370,7 @@ export function useAnalysis() {
       } catch (e) {
         if (!ctrl.signal.aborted) {
           failed++;
-          setError((e as Error).message);
+          setError(errorOf(e));
         }
       } finally {
         tick();
@@ -498,6 +509,8 @@ export function useAnalysis() {
         targetIds: [id],
         revision: rev.current,
         relation,
+        // Same language as the chat's other results, so one line never differs.
+        language: prior.current?.language ?? currentLang(),
         ...boundedContext(
           messages,
           Math.max(0, i - requestLimits.lineContext),
@@ -582,7 +595,7 @@ export function useAnalysis() {
       );
     } catch (e) {
       failed = !ctrl.signal.aborted;
-      if (failed) setError((e as Error).message);
+      if (failed) setError(errorOf(e));
     } finally {
       setRetrying([]);
       // Stopped or superseded runs have already set their own status.
@@ -618,8 +631,17 @@ export function useAnalysis() {
   /** The relation and note the current results were produced with. */
   const analyzedWith = () =>
     prior.current
-      ? { relation: prior.current.relation, note: prior.current.note }
+      ? {
+          relation: prior.current.relation,
+          note: prior.current.note,
+          language: prior.current.language,
+        }
       : undefined;
+  /** The shown reasons are in the other language (chat models only). */
+  const languageChanged = () =>
+    !!prior.current &&
+    requestLimits.provider !== "jev" &&
+    (prior.current.language ?? "zh") !== currentLang();
   /** Attaches extra data (e.g. reply suggestions) to an analyzed line. */
   function annotate(id: string, patch: Partial<LineResult>) {
     const old = savedLines.current[id];
@@ -641,6 +663,7 @@ export function useAnalysis() {
     retryEstimate,
     addUsage,
     analyzedWith,
+    languageChanged,
     annotate,
     setNote: (value: string) => {
       note.current = value;

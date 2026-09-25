@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useT } from "./i18n";
+import { say, useT, type Text } from "./i18n";
 
 const SIZE = 128;
 
@@ -66,7 +66,8 @@ export function AvatarPicker({
   onChange: (src: string | undefined) => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
-  const [error, setError] = useState("");
+  const [error, setErrorState] = useState<Text>("");
+  const setError = (x: Text) => setErrorState(() => x);
   const t = useT();
   return (
     <div className="avatar-picker">
@@ -93,7 +94,7 @@ export function AvatarPicker({
             </button>
           )}
         </div>
-        {error && <span className="error">{error}</span>}
+        {error && <span className="error">{say(t, error)}</span>}
       </div>
       <input
         ref={input}
@@ -108,7 +109,7 @@ export function AvatarPicker({
             setError("");
             onChange(await toAvatar(file));
           } catch {
-            setError(t.avatar.unreadable);
+            setError((t) => t.avatar.unreadable);
           }
         }}
       />

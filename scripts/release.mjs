@@ -26,6 +26,21 @@ if (out(`git tag --list ${tag}`))
   fail(
     `${tag} 已经存在。请先在 package.json 里升版本号。 / ${tag} already exists.`,
   );
+// Checked before anything is pushed, so a failure leaves nothing half-done.
+try {
+  run("gh auth status", true);
+} catch {
+  fail(
+    "需要安装并登录 GitHub CLI（gh auth login）。 / Install the gh CLI and run gh auth login.",
+  );
+}
+run("git fetch origin main --tags", true);
+if (out("git rev-list --count HEAD..origin/main") !== "0")
+  fail(
+    "GitHub 上有本地没有的提交，请先 git pull。 / origin/main has commits you don't; pull first.",
+  );
+if (out(`git ls-remote --tags origin refs/tags/${tag}`))
+  fail(`GitHub 上已经有 ${tag}。 / ${tag} already exists on GitHub.`);
 
 const changelog = readFileSync("CHANGELOG.md", "utf8");
 const start = changelog.indexOf(`## ${tag}`);
@@ -37,6 +52,8 @@ const next = changelog.indexOf("\n## v", start + 1);
 const section = changelog.slice(start, next < 0 ? undefined : next).trim();
 const title = section.split("\n")[0].replace(/^##\s*/, "");
 const notes = section.split("\n").slice(1).join("\n").trim();
+if (!notes)
+  fail(`CHANGELOG.md 里 ${tag} 这一节是空的。 / The ${tag} section is empty.`);
 
 console.log(`发布 / Releasing ${tag}\n`);
 run("npm test");

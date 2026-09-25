@@ -1,6 +1,7 @@
 import { test, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { choice, noul, score } from "../shared/questions";
+import { clip } from "../shared/rules";
 import {
   Masker,
   jevAnswer,
@@ -665,4 +666,67 @@ test("英文示例聊天能直接导入，Me 被识别为自己", () => {
     toMessages(parsed.messages, "Me").filter((m) => m.sender === "self").length,
     3,
   );
+});
+
+test("截断：中文按字、英文按词，同一上限给两种语言差不多的篇幅", () => {
+  assert.equal(clip("短句", 10), "短句");
+  assert.equal(clip("一二三四五六七八九十", 10), "一二三四五…");
+  const en = clip(
+    "They turned a busy week into a Sunday plan and remembered it",
+    30,
+  );
+  assert.ok(en.endsWith("…") && !en.includes("Sunda…"), en);
+  assert.ok(Array.from(en).length <= 31);
+});
+
+test("只有第一批写整体概括，其余批次跳过；英文请求在最后再提醒一次语言", async () => {
+  env();
+  const bodies: any[] = [];
+  const calls = fakeModel((questions, body) => {
+    bodies.push(JSON.parse(body.messages.at(-1).content));
+    return JSON.stringify({
+      context: "概括",
+      answers: Object.fromEntries(
+        Object.keys(questions).map((k) => [k, { r: "理由", yes: 0.5 }]),
+      ),
+    });
+  });
+  const questions = Object.fromEntries(
+    Array.from({ length: 20 }, (_, i) => [`q${i}`, noul("问题")]),
+  );
+  await systemOne({
+    state: { messages: [], outputLanguage: "English" },
+    questions,
+  });
+  assert.equal(calls.length, 3);
+  assert.equal(bodies.filter((b) => b.skipContext).length, 2);
+  assert.ok(!bodies[0].skipContext);
+  assert.ok(bodies.every((b) => /English/.test(b.reminder)));
+  bodies.length = 0;
+  await systemOne({ state: { messages: [] }, questions });
+  assert.ok(bodies.every((b) => b.reminder === undefined));
+});
+
+test("Jev 请求不带输出语言：切语言不改变请求，也不让缓存失效", async () => {
+  env();
+  process.env.LLM_PROVIDER = "jev";
+  process.env.JEV_PLATFORM = "openrouter";
+  process.env.OPENROUTER_API_KEY = "jev-key";
+  let sent: any;
+  globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+    sent = JSON.parse(String(init!.body));
+    return new Response(
+      JSON.stringify({ answers: { q: { type: "noul", noul: 0.4 } } }),
+    );
+  }) as typeof fetch;
+  try {
+    await systemOne({
+      state: { messages: [], outputLanguage: "English" },
+      questions: { q: noul("问题") },
+    });
+    assert.equal("outputLanguage" in sent.state, false);
+  } finally {
+    process.env.LLM_PROVIDER = "openai";
+    delete process.env.OPENROUTER_API_KEY;
+  }
 });

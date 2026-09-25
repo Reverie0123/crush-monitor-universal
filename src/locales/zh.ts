@@ -28,6 +28,8 @@ const relationHints = Object.fromEntries(
   Object.entries(RELATION_INFO).map(([k, v]) => [k, v.context]),
 ) as Record<Relation, string>;
 
+const num = (n: number) => n.toLocaleString("zh-CN");
+
 export const zh = {
   lang: "zh-CN",
   switchTo: "EN",
@@ -279,7 +281,8 @@ export const zh = {
     importChat: "导入聊天",
   },
   status: {
-    limit: (messages: string, chars: string) => `${messages} 条 / ${chars} 字`,
+    limit: (messages: number, chars: number) =>
+      `${num(messages)} 条 / ${num(chars)} 字`,
     ranges: { all: "全部", week: "最近 7 天", month: "最近 30 天" },
     lessThanMinute: "不到 1 分钟",
     minutes: (n: number) => `约 ${n} 分钟`,
@@ -293,12 +296,13 @@ export const zh = {
     stop: "停止",
     batchRunning: (limit: string) =>
       `聊天已超过单次上限（${limit}），分批上传中`,
-    batchRange: (from: string, to: string, count: string) =>
-      `：正在分析第 ${from}–${to} 条，共 ${count} 条`,
+    batchRange: (from: number, to: number, count: number) =>
+      `：正在分析第 ${num(from)}–${num(to)} 条，共 ${num(count)} 条`,
     capped: (budget: number) => `已达到单次花费上限 ¥${budget}，已暂停。`,
     incomplete: "分析未完成，",
     stale: "当前显示的是旧版规则的结果，",
-    pendingLines: (n: string) => `待分析 ${n} 条`,
+    langChanged: "现有的分析是英文写的，重新分析会用中文，",
+    pendingLines: (n: number) => `待分析 ${num(n)} 条`,
     overviewOnly: "只做整体分析",
     batchHintTitle: (limit: string) =>
       `一次最多读 ${limit}：逐句分析和走势分批覆盖全部消息，整体好感只读最近的部分。`,
@@ -307,14 +311,14 @@ export const zh = {
     estimate: (cost: string) => ` · 预计${cost}`,
     jevBill: "（Jev 以平台账单为准）",
     startTitle: (requests: number, input: string, output: string) =>
-      `约 ${requests} 次分析请求，输入约 ${input}、输出约 ${output} tokens。按设置里的单价估算，并按过去几次的实际用量自动修正；实际以服务商账单为准。`,
+      `约 ${num(requests)} 次分析请求，输入约 ${input}、输出约 ${output} tokens。按设置里的单价估算，并按过去几次的实际用量自动修正；实际以服务商账单为准。`,
     resume: "继续分析",
     start: "开始分析",
     done: "分析完成",
     forFun: "娱乐参考",
     retrying: (n: number) => `正在重试 ${n} 条…`,
     retryOnly: (n: number, cost: string) =>
-      `只重试这 ${n} 条未完成的（${cost}）`,
+      `只重试这 ${num(n)} 条未完成的（${cost}）`,
     spendTitle: "查看花费明细、设置单次上限，或按实际账单校准",
     spent: (cost: string) => `已花费 ${cost}`,
     noKey: "还没有设置 API Key，点这里填写",
@@ -329,7 +333,7 @@ export const zh = {
       "两行分别展示主要情绪与主要沟通意图的候选解读，不代表测量真实内心。每行最多显示前三项，保留原始概率，不重新凑成 100%。",
     replyRating: (label: string) => `回复评级：${label}`,
     noContext: "当前语境不足以判断表达质量",
-    replyScore: (value: string) => `回复评分 ${value} / 100 · `,
+    replyScore: (value: string) => `回复评分 ${value} / 100`,
     rephrase: "换个说法",
     thinking: "正在想…",
     tryAgain: "再换两种说法",
@@ -350,6 +354,9 @@ export const zh = {
     analyzing: "分析中",
     pending: "待分析",
     systemTip: "系统提示，不单独分析，仅作为上下文参考",
+    // System notices are stored in Chinese; zh shows them as they are.
+    recalled: null as ((self: boolean) => string) | null,
+    nudged: null as ((who: string, whom: string) => string) | null,
     unreadableTip: "看不到具体内容，不单独分析，仅作为上下文参考",
     retryTip: "模型这次没有给出完整结果，可以单独重试这一条",
     retry: "未完成，重试这条",
@@ -397,8 +404,8 @@ export const zh = {
     swap: "交换双方身份",
     clear: "清空聊天，重新开始",
     disclaimer: "免责声明与风险提示",
-    saved: (n: string) =>
-      `已保存 ${n} 条聊天。记录保存在本机浏览器，刷新后可继续；分析时只发送所需片段给模型服务。改关系或背景后，底部会重新显示预计花费，确认后再分析。`,
+    saved: (n: number) =>
+      `已保存 ${num(n)} 条聊天。记录保存在本机浏览器，刷新后可继续；分析时只发送所需片段给模型服务。改关系或背景后，底部会重新显示预计花费，确认后再分析。`,
     avatars: "头像",
     avatarNote:
       "图片会裁成正方形并压缩后保存在本机浏览器，不会发给模型；清空聊天时保留。",
@@ -470,7 +477,7 @@ export const zh = {
   spend: {
     title: "花费",
     requests: "分析请求",
-    requestsValue: (n: string) => `${n} 次`,
+    requestsValue: (n: number) => `${num(n)} 次`,
     input: "输入 tokens",
     cached: "其中缓存命中",
     output: "输出 tokens",
@@ -521,7 +528,7 @@ export const zh = {
     label: "搜索聊天内容",
     placeholder: "比如：周末、吃饭、生日",
     filter: "筛选",
-    found: (n: number) => `找到 ${n} 条`,
+    found: (n: number) => `找到 ${num(n)} 条`,
     capped: (n: number) => `，只显示前 ${n} 条`,
     hint: "输入关键词，或选一个筛选条件。",
     rating: (label: string) => ` · 回复评级 ${label}`,
@@ -529,8 +536,9 @@ export const zh = {
   importer: {
     title: "确认聊天里的你",
     allOther: "这些都是对方的话",
-    found: (n: number) => `识别到 ${n} 条聊天`,
+    found: (n: number) => `识别到 ${num(n)} 条聊天`,
     twoPeople: "请保留两个人的聊天，可改成「我：内容」「对方：内容」。",
+    unassigned: "有几行没认出是谁说的，可在前面加上「名字：」。",
     import: "导入聊天",
     note: "导入后会先显示预计花费，确认后再点「开始分析」。",
     overlapTitle: "这段可能重复了",
@@ -549,14 +557,14 @@ export const zh = {
       "聊天需要跨越至少两周（或超过约 120 条）才能画出走势，分析完成后会自动生成。",
     aria: "好感度随时间的变化",
     affinity: (v: string) => `好感 ${v}`,
-    count: (n: number) => ` · ${n} 条`,
+    count: (n: number) => ` · ${num(n)} 条`,
     jump: "跳到这句",
   },
   report: {
     trendAria: "好感度走势",
     eyebrow: "Crush 好感监控器 · 分析报告",
     heading: (name: string) => `和 ${name} 的聊天`,
-    messages: (n: number) => `${n} 条消息`,
+    messages: (n: number) => `${num(n)} 条消息`,
     range: (from: string, to: string) => `${from} 至 ${to}`,
     affinity: "好感度",
     stage: "关系阶段",

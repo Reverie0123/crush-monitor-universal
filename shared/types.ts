@@ -108,8 +108,10 @@ export type AnalysisResponse = {
 };
 export const MODEL = "openai-chat";
 // Bumped whenever the request shape changes, so a stale server can say so.
-export const API_VERSION = "2026-09-26.1";
+export const API_VERSION = "2026-09-26.2";
 // Bumped when prompts or answer shapes change, so saved results are re-analyzed.
+// Not bumped for additive prompt rules (v2.3 output language, v2.4 skipContext):
+// they don't change what earlier results mean, so those need no re-analysis.
 export const RUBRIC = "crush-2026-09-24.llm-5";
 type RelationInfo = {
   label: string;
@@ -237,13 +239,6 @@ export const ACTIONS: Record<string, { label: string; detail: string }> = {
     detail: "这几句话还看不准，补上前后文再一起看看。",
   },
 };
-export function statusLabel(j?: Judgment) {
-  return !j || j.status === "insufficient"
-    ? "信息不足"
-    : j.status === "clear"
-      ? "判断较明确"
-      : "有歧义";
-}
 export function meanQuality(
   messages: Message[],
   lines: Record<string, LineResult>,

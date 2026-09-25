@@ -41,4 +41,5 @@ r 和 context 里引用原话一律用「」，绝对不要出现英文双引号
 
 只输出一个 JSON 对象，先写 context 再写 answers：
 {"context": "用两三句话概括你对这段对话整体氛围和两人关系走向的理解", "answers": {"问题名": {"r": "...", "p": {...}} 或 {"r": "...", "yes": 0.3}, ...}}
+如果 questions 消息里 skipContext 为 true，不写 context，只输出 {"answers": {...}}。
 覆盖全部问题，不要输出其他内容。`;

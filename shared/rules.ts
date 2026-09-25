@@ -16,9 +16,27 @@ export const noulAnswer = z.object({
   type: z.literal("noul"),
   noul: z.number().min(0).max(1),
 });
+/**
+ * Shortens model text for display. CJK characters count double, so one limit
+ * gives Chinese and English the same room; English is cut at a word boundary.
+ */
+export function clip(text: string, units: number) {
+  const chars = Array.from(text);
+  let used = 0,
+    i = 0;
+  for (; i < chars.length; i++) {
+    used += /[\u2e80-\u9fff\uac00-\ud7af\uff00-\uffef]/.test(chars[i]) ? 2 : 1;
+    if (used > units) break;
+  }
+  if (i >= chars.length) return text;
+  let cut = chars.slice(0, i).join("");
+  const space = cut.lastIndexOf(" ");
+  if (space > cut.length * 0.6) cut = cut.slice(0, space);
+  return `${cut.trimEnd()}…`;
+}
 export function reasonOf(v: unknown) {
   const r = (v as { reason?: unknown } | null | undefined)?.reason;
-  return typeof r === "string" && r.trim() ? r.trim().slice(0, 200) : undefined;
+  return typeof r === "string" && r.trim() ? clip(r.trim(), 400) : undefined;
 }
 export function judgment(s: unknown, e: unknown): Judgment {
   const v = scoreAnswer.parse(s),

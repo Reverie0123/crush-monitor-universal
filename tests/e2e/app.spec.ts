@@ -319,7 +319,7 @@ test.describe("English interface", () => {
     await who.getByRole("button", { name: "我", exact: true }).click();
     await who.getByRole("button", { name: "Import chat" }).click();
     await expect(page.locator(".pending-run")).toContainText(
-      /\d+ messages · Est\./,
+      /\d+ messages? to analyze · Est\./,
     );
     // Every analysis request asks the model to answer in English.
     const languages: string[] = [];
@@ -339,16 +339,30 @@ test.describe("English interface", () => {
     await page.keyboard.press("Escape");
 
     // Switch to Chinese: everything on screen changes at once, no reload.
+    // The reasons were written in English, so a Chinese re-run is offered.
     await page.getByRole("button", { name: "切换到中文" }).click();
-    await expect(done).toContainText("分析完成");
+    const rerun = page.locator(".pending-run");
+    await expect(rerun).toContainText("现有的分析是英文写的");
     await expect(page.locator(".emotion-tag").first()).toContainText("开心");
     await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
 
     // The choice survives a reload, and switching back works too.
     await page.reload();
-    await expect(done).toContainText("分析完成");
+    await expect(rerun).toContainText("现有的分析是英文写的");
     await page.getByRole("button", { name: "Switch to English" }).click();
     await expect(done).toContainText("Done");
     await expect(page.locator(".emotion-tag").first()).toContainText("Happy");
+  });
+});
+
+test.describe("Other browser languages", () => {
+  test.use({ locale: "fr-FR" });
+
+  test("非中英文浏览器默认英文界面", async ({ page }) => {
+    await page.goto("/");
+    await expect(
+      page.getByRole("dialog", { name: "Please read before using" }),
+    ).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
   });
 });

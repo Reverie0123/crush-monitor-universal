@@ -456,13 +456,29 @@ export async function systemOne(
   const stateMessage = JSON.stringify({ state: masker.deep(request.state) });
   // The provider only caches a prefix once a request using it has finished, so
   // parallel batches would all pay full price. Send one first, then the rest.
-  const first = await robust(stateMessage, chunks[0], masker, signal);
+  // Only the first batch writes the overall reading; the rest skip it, since
+  // one reading of the same state is all that is used (output tokens cost most).
+  const english =
+    !!request.state &&
+    typeof request.state === "object" &&
+    (request.state as { outputLanguage?: unknown }).outputLanguage ===
+      "English";
+  const opts = (withContext: boolean) => ({ withContext, english });
+  const first = await robust(
+    stateMessage,
+    chunks[0],
+    masker,
+    signal,
+    opts(true),
+  );
   const results = [
     first,
     ...(await Promise.all(
       chunks
         .slice(1)
-        .map((chunk) => robust(stateMessage, chunk, masker, signal)),
+        .map((chunk) =>
+          robust(stateMessage, chunk, masker, signal, opts(false)),
+        ),
     )),
   ];
   const answers: Record<string, Answer> = {};
@@ -620,8 +636,18 @@ async function jevSystemOne(
   signal?: AbortSignal,
 ) {
   const c = config();
+  // Jev writes no reasons, so the output language means nothing to it; left
+  // out, switching language neither changes the request nor its cache key.
+  const state =
+    request.state &&
+    typeof request.state === "object" &&
+    !Array.isArray(request.state)
+      ? Object.fromEntries(
+          Object.entries(request.state).filter(([k]) => k !== "outputLanguage"),
+        )
+      : request.state;
   const body = {
-    state: masker.deep(request.state),
+    state: masker.deep(state as EntryType),
     questions: masker.deep(request.questions),
   };
   const key = createHash("sha256")
@@ -663,14 +689,21 @@ async function jevSystemOne(
 // Malformed output is usually specific to one generation: split the batch and
 // ask again, and as a last resort leave a single question unanswered, which the
 // rules layer reports as insufficient instead of failing the whole job.
+type AskOptions = {
+  /** Only one batch per request writes the overall reading. */
+  withContext: boolean;
+  /** Repeat the output language last, where instructions are followed best. */
+  english: boolean;
+};
 async function robust(
   stateMessage: string,
   chunk: [string, Question][],
   masker: Masker,
-  signal?: AbortSignal,
+  signal: AbortSignal | undefined,
+  opts: AskOptions,
 ): Promise<AskResult> {
   try {
-    return await withSlot(() => ask(stateMessage, chunk, masker, signal));
+    return await withSlot(() => ask(stateMessage, chunk, masker, signal, opts));
   } catch (error) {
     if (!(error instanceof LLMError) || error.status !== 422 || signal?.aborted)
       throw error;
@@ -682,8 +715,11 @@ async function robust(
     }
     const half = Math.ceil(chunk.length / 2);
     const parts = await Promise.all([
-      robust(stateMessage, chunk.slice(0, half), masker, signal),
-      robust(stateMessage, chunk.slice(half), masker, signal),
+      robust(stateMessage, chunk.slice(0, half), masker, signal, opts),
+      robust(stateMessage, chunk.slice(half), masker, signal, {
+        ...opts,
+        withContext: false,
+      }),
     ]);
     return {
       model: parts[0].model,
@@ -714,15 +750,20 @@ async function ask(
   stateMessage: string,
   chunk: [string, Question][],
   masker: Masker,
-  signal?: AbortSignal,
+  signal: AbortSignal | undefined,
+  opts: AskOptions,
   attempt = 0,
 ): Promise<AskResult> {
   const c = config();
   // Keys stay as-is: answers are matched back to them exactly.
   const questions = JSON.stringify({
+    ...(opts.withContext ? {} : { skipContext: true }),
     questions: Object.fromEntries(
       chunk.map(([k, q]) => [k, masker.deep(compactQuestion(q))]),
     ),
+    ...(opts.english
+      ? { reminder: "Write every r and the context in natural English." }
+      : {}),
   });
   const messages = [
     { role: "system" as const, content: SYSTEM },
@@ -748,7 +789,7 @@ async function ask(
   }
   const retry = (error: LLMError) => {
     if (attempt >= 2 || signal?.aborted) throw error;
-    return ask(stateMessage, chunk, masker, signal, attempt + 1);
+    return ask(stateMessage, chunk, masker, signal, opts, attempt + 1);
   };
   let reply: Awaited<ReturnType<typeof callModel>>;
   try {

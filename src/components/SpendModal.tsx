@@ -21,7 +21,7 @@ export function SpendModal({
   const t = useT();
   const { prices } = spend;
   const rows: [string, string][] = [
-    [t.spend.requests, t.spend.requestsValue(usage.requests.toLocaleString())],
+    [t.spend.requests, t.spend.requestsValue(usage.requests)],
     [t.spend.input, formatTokens(usage.input)],
     [t.spend.cached, formatTokens(usage.cached)],
     [t.spend.output, formatTokens(usage.output)],

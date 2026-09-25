@@ -41,7 +41,7 @@ import {
   setRequestLimits,
 } from "../shared/limits";
 import type { PublicConfig } from "./ModelSettings";
-import { errorText, useLang } from "./i18n";
+import { TextError, errorOf, errorText, say, useLang, type Text } from "./i18n";
 import {
   mergeMessages,
   parseChat,
@@ -84,10 +84,10 @@ export default function App() {
     [importing, setImporting] = useState(false),
     [settings, setSettings] = useState(false),
     [detail, setDetail] = useState<string | null>(null),
-    [notice, setNotice] = useState("");
+    [notice, setNoticeState] = useState<Text>("");
   const [overlap, setOverlap] = useState<Message[] | null>(null);
   const [ready, setReady] = useState(false),
-    [storageError, setStorageError] = useState("");
+    [storageError, setStorageErrorState] = useState<Text>("");
   const [note, setNote] = useState(""),
     [noteDraft, setNoteDraft] = useState(""),
     [configured, setConfigured] = useState(true),
@@ -99,8 +99,12 @@ export default function App() {
     [suggesting, setSuggesting] = useState<string | null>(null),
     [suggestError, setSuggestError] = useState<{
       id: string;
-      message: string;
+      message: Text;
     } | null>(null);
+  // Text may be a function of the dictionary; wrapped so React stores it
+  // as a value instead of calling it as an updater.
+  const setNotice = (x: Text) => setNoticeState(() => x);
+  const setStorageError = (x: Text) => setStorageErrorState(() => x);
 
   function applyConfig(c: PublicConfig) {
     // Set before the state change so the re-render plans with the new limits.
@@ -155,7 +159,9 @@ export default function App() {
   function updateAvatars(change: (old: Avatars) => Avatars) {
     setAvatars((old) => {
       const next = change(old);
-      saveAvatars(next).catch(() => setStorageError(t.app.avatarSaveFailed));
+      saveAvatars(next).catch(() =>
+        setStorageError((t) => t.app.avatarSaveFailed),
+      );
       return next;
     });
   }
@@ -196,7 +202,7 @@ export default function App() {
       })
       .catch(() => {
         if (live) {
-          setStorageError(t.app.storageReadFailed);
+          setStorageError((t) => t.app.storageReadFailed);
           setReady(true);
         }
       });
@@ -212,7 +218,7 @@ export default function App() {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = null;
     void saveConversation(pendingSave.current).catch(() =>
-      setStorageError(t.app.storageSaveFailed),
+      setStorageError((t) => t.app.storageSaveFailed),
     );
   };
   useEffect(() => {
@@ -314,6 +320,8 @@ export default function App() {
       note,
       // Jev splits long chats into more, smaller requests.
       provider,
+      // Results in the other language are offered for a re-run.
+      lang,
       a.lines,
       a.status,
       a.periods,
@@ -361,7 +369,7 @@ export default function App() {
       return;
     }
     if (!m.added) {
-      setNotice(t.app.nothingNew);
+      setNotice((t) => t.app.nothingNew);
       setInput("");
       return;
     }
@@ -371,7 +379,7 @@ export default function App() {
   function prepare(text: string) {
     if (!text.trim()) return;
     if (text.length > 250000) {
-      setNotice(t.app.pasteTooLong);
+      setNotice((t) => t.app.pasteTooLong);
       return;
     }
     const p = parseChat(text);
@@ -410,7 +418,7 @@ export default function App() {
     pendingSave.current = null;
     void saveConversation(null)
       .then(() => setStorageError(""))
-      .catch(() => setStorageError(t.app.clearFailed));
+      .catch(() => setStorageError((t) => t.app.clearFailed));
     setMessages([]);
     setInput("");
     setSelf("");
@@ -468,12 +476,13 @@ export default function App() {
         }),
       });
       const body = await r.json();
-      if (!r.ok) throw new Error(errorText(body, t.app.suggestFailed));
+      if (!r.ok)
+        throw new TextError(errorText(body, (t) => t.app.suggestFailed));
       a.annotate(id, { suggestions: body.suggestions });
       // Suggestions are paid requests too; count them in 已花费.
       if (body.usage) a.addUsage(body.usage);
     } catch (e) {
-      setSuggestError({ id, message: (e as Error).message });
+      setSuggestError({ id, message: errorOf(e) });
     } finally {
       setSuggesting(null);
     }
@@ -800,7 +809,7 @@ export default function App() {
           }
           suggesting={suggesting === chosen.id}
           suggestError={
-            suggestError?.id === chosen.id ? suggestError.message : ""
+            suggestError?.id === chosen.id ? say(t, suggestError.message) : ""
           }
           reconsidering={a.reconsidering === chosen.id}
           savedCorrection={a.corrections[chosen.id]}

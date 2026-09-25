@@ -5,7 +5,7 @@ import { EMOTIONS } from "../../shared/labels";
 import { INTENTS } from "../../shared/intents";
 import { replyRating } from "../../shared/ratings";
 import type { LineResult, Message } from "../../shared/types";
-import { judgmentText, useT } from "../i18n";
+import { errorOf, judgmentText, say, useT, type Text } from "../i18n";
 
 const pct = (p: number) =>
   p > 0 && p < 0.005 ? "<1%" : `${Math.round(p * 100)}%`;
@@ -39,7 +39,8 @@ export function LineDetail({
 }) {
   const [draft, setDraft] = useState(savedCorrection ?? "");
   const [open, setOpen] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setErrorState] = useState<Text>("");
+  const setError = (x: Text) => setErrorState(() => x);
   const t = useT();
   const rating = replyRating(result?.score.value);
   return (
@@ -98,7 +99,7 @@ export function LineDetail({
           <p>{rating ? t.ratings[rating.label] : t.line.noContext}</p>
           <p>
             {t.line.replyScore(String(result?.score.value ?? t.dash))}
-            {result && judgmentText(t, result.score)}
+            {result && ` · ${judgmentText(t, result.score)}`}
           </p>
           {result?.score.reason && <Reason>{result.score.reason}</Reason>}
           {result && (
@@ -170,14 +171,14 @@ export function LineDetail({
                     await onReconsider(draft);
                     setOpen(false);
                   } catch (e) {
-                    setError((e as Error).message);
+                    setError(errorOf(e));
                   }
                 }}
               >
                 {reconsidering ? t.line.reconsidering : t.line.reconsider}
               </button>
               <p className="import-hint">{t.line.reconsiderNote}</p>
-              {error && <p className="error">{error}</p>}
+              {error && <p className="error">{say(t, error)}</p>}
             </>
           )}
         </div>

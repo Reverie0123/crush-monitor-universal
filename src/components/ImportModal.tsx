@@ -59,7 +59,13 @@ export function ImportModal({
           }}
         />
       </label>
-      {invalid && <p className="error">{t.importer.twoPeople}</p>}
+      {invalid && (
+        <p className="error">
+          {names.includes("未分配") && names.length <= 2
+            ? t.importer.unassigned
+            : t.importer.twoPeople}
+        </p>
+      )}
       <button
         className="primary"
         disabled={

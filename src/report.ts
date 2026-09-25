@@ -4,6 +4,7 @@ import { replyRating } from "../shared/ratings";
 import { momentList } from "./Moments";
 import { messages as currentText, periodName } from "./i18n";
 import type { Messages } from "./locales/zh";
+import { dateOf } from "./time";
 
 const esc = (s: unknown) =>
   String(s ?? "").replace(
@@ -76,7 +77,7 @@ export function buildReport(input: {
 <header>
   <p class="eyebrow">${esc(r.eyebrow)}</p>
   <h1>${esc(r.heading(input.other))}</h1>
-  <p class="meta">${esc(t.relations[input.relation])} · ${esc(r.messages(messages.length))}${first && last ? ` · ${esc(r.range(first.slice(0, 10), last.slice(0, 10)))}` : ""}</p>
+  <p class="meta">${esc(t.relations[input.relation])} · ${esc(r.messages(messages.length))}${first && last ? ` · ${esc(r.range(dateOf(first), dateOf(last)))}` : ""}</p>
 </header>
 ${
   ov

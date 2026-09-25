@@ -8,6 +8,8 @@ A tool for looking at conversations with your crush or partner. It helps you mak
 
 AI doesn't know your relationship or what happens outside the chat. Take the results lightly—as another perspective. Your own judgment and an honest conversation still matter more.
 
+![The built-in sample chat analyzed with DeepSeek](docs/screenshot-en.png)
+
 ## Features
 
 - **WeChat-style conversation view:** analysis sits beneath each message.
@@ -23,9 +25,13 @@ AI doesn't know your relationship or what happens outside the chat. Take the res
 - **Two model choices:** DeepSeek / OpenAI by default, or the original Jev (via OpenRouter, Vercel or TypeSafe); keys and prices are kept separately for each.
 - **Your own key, cost shown:** runs locally with your own API credits and shows the estimated spend.
 - **Privacy masking:** phone numbers, emails, ID and card numbers, and words you choose are replaced with placeholders before sending.
-- **English or Chinese interface:** switch with the **EN / 中** button at the top right (or in Chat settings); it applies instantly and is remembered. The first visit follows your browser's language.
+- **Analysis levels:** "Quick" reads only the overall score and trend (usually under ¥1), "Standard" adds emotions and intentions for each of their messages, "Full" also grades your replies; you can also analyze just the last 7 or 30 days.
+- **Spending under control:** after importing you see the estimated cost and start manually; set a per-run limit that pauses the analysis; spent / estimated and time left are shown while it runs.
+- **Correct a judgment:** if a line was read wrong, write what actually happened and the model re-reads that line with your note; later re-runs keep it.
+- **Search and filters:** search the chat by keyword, or jump between "my low-scoring replies", "their negative emotions" and more.
+- **English or Chinese interface:** switch with the **EN / 中** button at the top right (or in Chat Settings); it applies instantly and is remembered. The first visit follows your browser's language.
 
-In English mode everything is in English, including what the model writes: its reasoning, overall reading and weekly summaries. Reply suggestions are always written in the same language as your original message, so English chats get English rewrites. The sample chat is in English too.
+In English mode everything is in English, including what the model writes: its reasoning, overall reading and weekly summaries. Reply suggestions are always written in the same language as your original message, so English chats get English rewrites. The sample chat is in English too. Results already analyzed keep the language they were written in; after switching, the status bar offers to re-run them in the new language.
 
 ## Model
 
@@ -52,7 +58,7 @@ Open [http://127.0.0.1:3178/](http://127.0.0.1:3178/), click the settings icon a
 ## Usage
 
 1. Paste a conversation, or click **Import file** to pick a `.txt` export. Export-tool summary headers are skipped automatically.
-2. Select your own name, check the estimated cost at the bottom, and click **Start Analysis**. Relationship type and background are in **Chat settings**.
+2. Select your own name, check the estimated cost at the bottom, and click **Start Analysis**. Relationship type and background are in **Chat Settings**.
 3. Click a label for details and the model's reasons. The three buttons at the top right are trend, key moments and report export.
 4. Import more of the same conversation later: overlaps are merged and only new messages are analyzed.
 
@@ -70,12 +76,15 @@ Open [http://127.0.0.1:3178/](http://127.0.0.1:3178/), click the settings icon a
 17/09/2026, 19:27 - Me: Sounds good
 ```
 
-Only two-person text conversations are supported—not images, audio, ZIP/HTML exports or chat databases.
+If a copied iMessage (or other) chat has only the text with no sender, add `Alex:` / `Me:` first; the app doesn't guess who said what.
+
+Only two-person text conversations are supported—not images, audio, ZIP/HTML exports or chat databases. Placeholders such as `[Image]` or `<Media omitted>` are sent as context but not scored. WeChat recalls and nudges ("pats") are shown centered as system notices.
 
 ## Notes
 
 - The affection score combines six weighted dimensions. An explicit refusal that still applies limits the score. **It is not the probability that someone likes you.**
 - With DeepSeek / OpenAI, each model request holds up to 2,000 messages / 60,000 characters and 9 requests run at once. The overview reads the most recent ~1,950 messages; per-line analysis sees the previous 150 and next 20. With Jev, the original limits apply: 500 messages / 12,000 characters, previous 80 messages, 2 requests at once. The page says so when the overview can't read the whole chat. Total history is limited only by browser storage.
+- Costs are shown in Chinese yuan (¥), because the default prices are DeepSeek's. For a service billed in US dollars, enter its prices converted to yuan in the settings; after a few runs you can type in your actual bill to calibrate the estimates. Your provider's bill is what counts.
 - Jev writes no reasons; reply suggestions need **Jev + DeepSeek / OpenAI** mode. DeepSeek / OpenAI and Jev each keep their own prices and bill calibration; Jev estimates are approximate.
 - After switching models, lines already analyzed keep their results; new lines and the overview use the new model. Model settings can't be saved while an analysis is running.
 - Model replies are cached in `.cache/` so re-analyzing the same content is free; you can clear or disable this in settings. The cache contains chat text—never commit it.
@@ -84,7 +93,7 @@ Only two-person text conversations are supported—not images, audio, ZIP/HTML e
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) (in Chinese). Current version v2.3.0: full English support — the model writes its analysis in English when the interface is in English.
+See [CHANGELOG.md](CHANGELOG.md) (in Chinese; releases from v2.4.0 end with an English summary). Current version v2.4.0: polish for English use (plurals, number formats, translated system notices) and a re-run offer after switching language.
 
 ## Development
 

@@ -3,6 +3,7 @@ import { Modal } from "./ui";
 import { replyRating } from "../../shared/ratings";
 import type { LineResult, Message } from "../../shared/types";
 import { useT } from "../i18n";
+import { withoutSeconds } from "../time";
 
 const NEGATIVE = ["angry", "sad", "annoyed", "disappointed"];
 type Filter = "all" | "lowReply" | "negative" | "incomplete" | "corrected";
@@ -101,7 +102,7 @@ export function SearchModal({
               <button className="quote-jump" onClick={() => onJump(m.id)}>
                 <span className="search-meta">
                   {m.sender === "self" ? self || t.me : other}
-                  {m.timestamp && ` · ${m.timestamp.replace(/:\d{2}$/, "")}`}
+                  {m.timestamp && ` · ${withoutSeconds(m.timestamp)}`}
                   {rating && t.search.rating(rating.label)}
                 </span>
                 <span className="search-text">{m.text.slice(0, 80)}</span>

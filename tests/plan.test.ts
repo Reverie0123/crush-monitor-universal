@@ -222,3 +222,56 @@ test("超过 12,000 字的单条消息本来就不发送，不会触发分批提
     setRequestLimits(CHAT_LIMITS);
   }
 });
+
+test("换了语言：已有结果不再追加，而是整段按新语言重做；Jev 不受语言影响", () => {
+  const done = planRun(chat, "crush", "", { level: "full", days: null }, empty);
+  const prior = {
+    messages: chat,
+    relation: "crush" as const,
+    note: "",
+    language: "zh" as const,
+  };
+  const state: RunState = {
+    ...empty,
+    prior,
+    processed: chat.length,
+    lines: done.lines,
+  };
+  const same = planRun(
+    chat,
+    "crush",
+    "",
+    { level: "full", days: null },
+    { ...state, language: "zh" },
+  );
+  const other = planRun(
+    chat,
+    "crush",
+    "",
+    { level: "full", days: null },
+    { ...state, language: "en" },
+  );
+  const jev = planRun(
+    chat,
+    "crush",
+    "",
+    { level: "full", days: null },
+    { ...state, language: undefined },
+  );
+  assert.equal(same.append, true);
+  assert.equal(other.append, false);
+  assert.equal(jev.append, true);
+  // Results saved before v2.4 carry no language and count as Chinese.
+  const old = planRun(
+    chat,
+    "crush",
+    "",
+    { level: "full", days: null },
+    {
+      ...state,
+      prior: { messages: chat, relation: "crush", note: "" },
+      language: "zh",
+    },
+  );
+  assert.equal(old.append, true);
+});

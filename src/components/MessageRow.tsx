@@ -5,7 +5,7 @@ import { topEmotions } from "../../shared/labels";
 import { topIntents } from "../../shared/intents";
 import { replyRating } from "../../shared/ratings";
 import type { LineResult, Message } from "../../shared/types";
-import { useT } from "../i18n";
+import { systemText, useT } from "../i18n";
 import { zh } from "../locales/zh";
 
 export function MessageRow({
@@ -42,7 +42,7 @@ export function MessageRow({
       )}
       {m.kind === "system" ? (
         <div className="system-notice" title={t.row.systemTip}>
-          {m.text}
+          {systemText(t, m.text)}
         </div>
       ) : (
         <div className="message-row">

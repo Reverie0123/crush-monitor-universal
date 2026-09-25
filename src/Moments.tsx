@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { MemoryEvent } from "../shared/memory";
 import type { Message } from "../shared/types";
 import { useT } from "./i18n";
+import { withoutSeconds } from "./time";
 
 // Everyday kinds are hidden by default so the list reads as the relationship's milestones.
 const MINOR = new Set<MemoryEvent["kind"]>([
@@ -62,7 +63,7 @@ export function Moments({
                 <span className="moment-meta">
                   {message.sender === "self" ? self || t.me : other}
                   {message.timestamp &&
-                    ` · ${message.timestamp.replace(/:\d{2}$/, "")}`}
+                    ` · ${withoutSeconds(message.timestamp)}`}
                   {event.status === "resolved" && t.momentsView.answered}
                 </span>
               </div>

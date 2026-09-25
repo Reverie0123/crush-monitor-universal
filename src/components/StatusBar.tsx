@@ -6,15 +6,13 @@ import type { Analysis } from "../useAnalysis";
 import type { Spend } from "../useSpend";
 import type { Estimate } from "../../shared/estimate";
 import { requestLimits } from "../../shared/limits";
-import { useT } from "../i18n";
+import { say, useT } from "../i18n";
 import type { Messages } from "../locales/zh";
+import type { Text } from "../i18n";
 
 /** e.g. "500 条 / 12,000 字" */
 const limitText = (t: Messages) =>
-  t.status.limit(
-    requestLimits.messages.toLocaleString(),
-    requestLimits.chars.toLocaleString(),
-  );
+  t.status.limit(requestLimits.messages, requestLimits.chars);
 
 const RANGES = [
   ["all", null],
@@ -49,7 +47,7 @@ export function StatusBar({
   spend: Spend;
   pending: { lines: number; batched: boolean; estimate: Estimate } | null;
   configured: boolean;
-  notice: string;
+  notice: Text;
   incomplete: string[];
   retryCost: number;
   on: {
@@ -109,7 +107,7 @@ export function StatusBar({
   );
   return (
     <div className="composer-feedback">
-      <span role="status">{notice}</span>{" "}
+      <span role="status">{say(t, notice)}</span>{" "}
       <div className="analysis-status" aria-live="polite">
         {busy ? (
           <>
@@ -125,12 +123,7 @@ export function StatusBar({
             {batched && (
               <span className="batch-note">
                 {t.status.batchRunning(limitText(t))}
-                {range &&
-                  t.status.batchRange(
-                    range[0].toLocaleString(),
-                    range[1].toLocaleString(),
-                    count.toLocaleString(),
-                  )}
+                {range && t.status.batchRange(range[0], range[1], count)}
               </span>
             )}
           </>
@@ -143,10 +136,12 @@ export function StatusBar({
                 ? t.status.incomplete
                 : a.stale
                   ? t.status.stale
-                  : ""}
+                  : a.languageChanged()
+                    ? t.status.langChanged
+                    : ""}
             {controls}
             {pending.lines
-              ? t.status.pendingLines(pending.lines.toLocaleString())
+              ? t.status.pendingLines(pending.lines)
               : t.status.overviewOnly}
             {pending.batched && (
               <span
@@ -211,7 +206,9 @@ export function StatusBar({
           {t.status.noKey}
         </button>
       )}
-      {a.error && !spend.capped && <span className="error">{a.error}</span>}
+      {a.error && !spend.capped && (
+        <span className="error">{say(t, a.error)}</span>
+      )}
     </div>
   );
 }

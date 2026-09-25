@@ -2,6 +2,11 @@
 // must be here and nothing else may be.
 import type { Messages } from "./zh";
 
+const num = (n: number) => n.toLocaleString("en-US");
+/** "1 message", "2 messages" */
+const count = (n: number, one: string, many = `${one}s`) =>
+  `${num(n)} ${n === 1 ? one : many}`;
+
 export const en: Messages = {
   lang: "en",
   switchTo: "中",
@@ -207,7 +212,7 @@ export const en: Messages = {
     flow: "Talking easily",
     flirt: "Some flirting",
     date: "A date is planned",
-    mutual: "Feelings are mutual and said",
+    mutual: "Both said how they feel",
   },
   actions: {
     continue: {
@@ -325,7 +330,7 @@ export const en: Messages = {
     clearKeep: "Keep this chat",
   },
   header: {
-    viewAffinity: "View affinity details",
+    viewAffinity: "View Affection Score details",
     affinity: "Affection Score",
     search: "Search & filter",
     trend: "Relationship trend",
@@ -344,7 +349,8 @@ export const en: Messages = {
     importChat: "Import chat",
   },
   status: {
-    limit: (messages, chars) => `${messages} messages / ${chars} characters`,
+    limit: (messages, chars) =>
+      `${num(messages)} messages / ${num(chars)} characters`,
     ranges: { all: "All", week: "Last 7 days", month: "Last 30 days" },
     lessThanMinute: "under a minute",
     minutes: (n) => `about ${n} min`,
@@ -360,11 +366,13 @@ export const en: Messages = {
     batchRunning: (limit) =>
       `The chat is over the per-request limit (${limit}); sending in batches`,
     batchRange: (from, to, count) =>
-      `: analyzing messages ${from}–${to} of ${count}`,
+      `: analyzing messages ${num(from)}–${num(to)} of ${num(count)}`,
     capped: (budget) => `Reached the per-run limit of ¥${budget}; paused.`,
     incomplete: "Analysis incomplete. ",
     stale: "Showing results from older rules. ",
-    pendingLines: (n) => `${n} messages`,
+    langChanged:
+      "The current analysis is in Chinese; re-running writes it in English. ",
+    pendingLines: (n) => `${count(n, "message")} to analyze`,
     overviewOnly: "Overview only",
     batchHintTitle: (limit) =>
       `Reads up to ${limit} at a time: line-by-line analysis and the trend cover every message in batches; the overall score reads the most recent part.`,
@@ -373,13 +381,16 @@ export const en: Messages = {
     estimate: (cost) => ` · Est. ${cost}`,
     jevBill: " (Jev: see your platform's bill)",
     startTitle: (requests, input, output) =>
-      `About ${requests} requests, ~${input} input and ~${output} output tokens. Estimated from the prices in settings and corrected by recent runs; your provider's bill is what counts.`,
+      `About ${count(requests, "request")}, ~${input} input and ~${output} output tokens. Estimated from the prices in settings and corrected by recent runs; your provider's bill is what counts.`,
     resume: "Continue",
     start: "Start Analysis",
     done: "Done",
     forFun: "For fun only",
     retrying: (n) => `Retrying ${n}…`,
-    retryOnly: (n, cost) => `Retry only these ${n} unfinished (${cost})`,
+    retryOnly: (n, cost) =>
+      n === 1
+        ? `Retry just the unfinished message (${cost})`
+        : `Retry only these ${num(n)} unfinished messages (${cost})`,
     spendTitle:
       "See the cost breakdown, set a per-run limit, or calibrate to your bill",
     spent: (cost) => `Spent ${cost}`,
@@ -395,7 +406,7 @@ export const en: Messages = {
       "Each row shows candidate readings of the main emotion and the main purpose — not a measurement of what they truly feel. Up to three per row, with the raw probabilities (not rescaled to 100%).",
     replyRating: (label) => `Reply Rating: ${label}`,
     noContext: "Not enough context to judge this reply",
-    replyScore: (value) => `Reply score ${value} / 100 · `,
+    replyScore: (value) => `Reply score ${value} / 100`,
     rephrase: "Rephrase",
     thinking: "Thinking…",
     tryAgain: "Try again",
@@ -417,6 +428,9 @@ export const en: Messages = {
       "Click “Start Analysis” at the bottom; you'll see the estimated cost first",
     analyzing: "Analyzing",
     pending: "Pending",
+    recalled: (self) =>
+      self ? "You recalled a message" : "They recalled a message",
+    nudged: (who, whom) => `${who} nudged ${whom}`,
     systemTip:
       "A system notice — not analyzed on its own, only used as context",
     unreadableTip:
@@ -463,7 +477,7 @@ export const en: Messages = {
     ratingRange: (label, range) => `${label} · ${range}`,
   },
   settings: {
-    title: "Chat settings",
+    title: "Chat Settings",
     relation: "Your relationship",
     note: "Background (optional; helps the model read the tone)",
     notePlaceholder:
@@ -473,7 +487,7 @@ export const en: Messages = {
     clear: "Clear chat and start over",
     disclaimer: "Disclaimer & risks",
     saved: (n) =>
-      `${n} messages saved. Records stay in this browser and survive a refresh; analysis sends only the parts it needs to the model. After changing the relationship or background, the estimated cost shows again before you analyze.`,
+      `${count(n, "message")} saved. Records stay in this browser and survive a refresh; analysis sends only the parts it needs to the model. After changing the relationship or background, the estimated cost shows again before you analyze.`,
     avatars: "Avatars",
     avatarNote:
       "Pictures are cropped square, compressed and kept in this browser; never sent to the model, and kept when you clear the chat.",
@@ -550,7 +564,7 @@ export const en: Messages = {
   spend: {
     title: "Cost",
     requests: "Requests",
-    requestsValue: (n) => n,
+    requestsValue: (n) => num(n),
     input: "Input tokens",
     cached: "of which cache hits",
     output: "Output tokens",
@@ -589,7 +603,7 @@ export const en: Messages = {
     accept: "I've read this — continue",
   },
   search: {
-    title: "Search & filter",
+    title: "Search & Filter",
     filters: {
       all: "All",
       lowReply: "My low-rated replies",
@@ -600,7 +614,7 @@ export const en: Messages = {
     label: "Search the chat",
     placeholder: "e.g. weekend, dinner, birthday",
     filter: "Filter",
-    found: (n) => `${n} found`,
+    found: (n) => `${num(n)} found`,
     capped: (n) => `, showing the first ${n}`,
     hint: "Type a keyword or pick a filter.",
     rating: (label) => ` · Reply Rating ${label}`,
@@ -608,9 +622,10 @@ export const en: Messages = {
   importer: {
     title: "Which one is you?",
     allOther: "All of these are the other person",
-    found: (n) => `${n} messages found`,
+    found: (n) => `${count(n, "message")} found`,
     twoPeople:
       "Keep a two-person chat; you can rewrite lines as “Me: …” and “Them: …”.",
+    unassigned: "Some lines have no speaker; start them with “Name: ”.",
     import: "Import chat",
     note: "After importing you'll see the estimated cost first; then click “Start Analysis”.",
     overlapTitle: "This part may be a duplicate",
@@ -629,15 +644,15 @@ export const en: Messages = {
     needMore:
       "The chat needs to span at least two weeks (or roughly 120+ messages) to draw a trend; it appears after analysis.",
     aria: "Affection score over time",
-    affinity: (v) => `Score ${v}`,
-    count: (n) => ` · ${n} messages`,
+    affinity: (v) => `Affection ${v}`,
+    count: (n) => ` · ${count(n, "message")}`,
     jump: "Jump to message",
   },
   report: {
     trendAria: "Affection score trend",
     eyebrow: "Crush Monitor · Analysis report",
     heading: (name) => `Chat with ${name}`,
-    messages: (n) => `${n} messages`,
+    messages: (n) => count(n, "message"),
     range: (from, to) => `${from} to ${to}`,
     affinity: "Affection Score",
     stage: "Stage",

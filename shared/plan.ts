@@ -33,7 +33,18 @@ export const DEFAULT_SCOPE: Scope = { level: "full", days: null };
 
 /** What the previous runs left behind. */
 export type RunState = {
-  prior: { messages: Message[]; relation: Relation; note: string } | null;
+  prior: {
+    messages: Message[];
+    relation: Relation;
+    note: string;
+    /** Language the model wrote the reasons in; results before v2.4 are zh. */
+    language?: "zh" | "en";
+  } | null;
+  /**
+   * Language the next run would write in; left out when it doesn't matter
+   * (Jev writes no reasons).
+   */
+  language?: "zh" | "en";
   processed: number;
   /** Results come from older analysis rules and must all be redone. */
   stale: boolean;
@@ -130,6 +141,8 @@ export function planRun(
     prior.relation === relation &&
     // New background changes how every line reads, like a new relation.
     prior.note === note &&
+    // Reasons written in the other language are redone, not mixed.
+    (!state.language || (prior.language ?? "zh") === state.language) &&
     prior.messages.length <= messages.length &&
     prior.messages.every(
       (m, i) =>

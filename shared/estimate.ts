@@ -17,7 +17,7 @@ const SYSTEM_TOKENS = tokens(SYSTEM) + tokens(SHARED_MESSAGE);
 const CHUNK = 9; // server/llm.ts batch size
 // Output per answer: a one-line reason plus probabilities.
 const OUTPUT = { choice: 72, score: 60, noul: 38 } as const;
-const CONTEXT_OUTPUT = 100; // the "context" summary each batch writes first
+const CONTEXT_OUTPUT = 100; // the "context" summary only the first batch writes
 
 export type Estimate = {
   input: number;
@@ -69,7 +69,8 @@ export function estimateJobs(
       if (i > 0) total.cached += stateTokens;
       systemCached = true;
       total.output +=
-        CONTEXT_OUTPUT + chunk.reduce((n, [, q]) => n + OUTPUT[q.type], 0);
+        (i === 0 ? CONTEXT_OUTPUT : 0) +
+        chunk.reduce((n, [, q]) => n + OUTPUT[q.type], 0);
     }
   }
   return total;

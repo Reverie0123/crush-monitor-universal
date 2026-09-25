@@ -90,6 +90,7 @@ export function ChatHeader({
           aria-label={t.switchLabel}
           title={t.switchLabel}
           onClick={() => setLang(lang === "zh" ? "en" : "zh")}
+          lang={lang === "zh" ? "en" : "zh"}
         >
           {t.switchTo}
         </button>

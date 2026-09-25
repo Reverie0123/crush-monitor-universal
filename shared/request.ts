@@ -89,8 +89,6 @@ export function buildRequest(input: AnalysisRequest) {
     };
   };
   const state = {
-    // Reasons and the overall reading are shown to the user in this language.
-    ...(input.language === "en" ? { outputLanguage: "English" } : {}),
     relationship: relationContext(input.relation),
     ...(input.note?.trim() ? { background: input.note.trim() } : {}),
     // The user's own reading of specific messages: trusted context for re-judging them.
@@ -114,6 +112,9 @@ export function buildRequest(input: AnalysisRequest) {
           })),
         }
       : {}),
+    // Reasons and the overall reading are shown to the user in this language.
+    // Last, so zh and en requests for the same chat share the longest prefix.
+    ...(input.language === "en" ? { outputLanguage: "English" } : {}),
   };
   const questions: Questions = {};
   const ask = (s: string) => `${GUARD} ${s}`;

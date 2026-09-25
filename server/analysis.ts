@@ -19,6 +19,7 @@ import {
   choiceAnswer,
   noulAnswer,
   reasonOf,
+  clip,
 } from "../shared/rules";
 export const requestSchema = z
   .object({
@@ -187,7 +188,7 @@ export async function analyze(
       ...actionResult(a.action, a.boundary, a.pending),
       evidenceId: evidence(a.evidence),
       actionEvidenceId: evidence(a.actionEvidence),
-      reading: result.context?.slice(0, 400),
+      reading: result.context && clip(result.context, 800),
       actionReason: reasonOf(a.action),
     };
   } else

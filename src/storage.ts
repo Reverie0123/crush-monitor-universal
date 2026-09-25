@@ -29,7 +29,7 @@ export type SavedConversation = {
   scope?: Scope;
   corrections?: Record<string, string>;
   /** Relation and note the saved results were produced with. */
-  analyzedWith?: { relation: Relation; note: string };
+  analyzedWith?: { relation: Relation; note: string; language?: "zh" | "en" };
 };
 let connection: Promise<IDBDatabase> | undefined;
 function db() {

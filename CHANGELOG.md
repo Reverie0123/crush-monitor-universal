@@ -1,5 +1,37 @@
 # 更新记录
 
+## v2.4.0（2026-09-26）：打磨与省钱
+
+### 改进
+
+- 切换界面语言后，如果已有分析是另一种语言写的，底部会提示「重新分析会用新语言」，并显示预计花费；不会自动重跑。一次分析中途切换语言，这次分析仍统一用开始时的语言。
+- 长聊天更省钱：分批分析时只有第一批写整体解读，其余批次不再重复写，输出 token 更少；预计花费也按此计算。
+- 英文界面：单复数（1 message / 2 messages）、千位分隔符按界面语言显示；「撤回了一条消息」「拍了拍」在英文界面显示为 recalled / nudged；弹窗标题统一首字母大写。
+- 出错提示和状态提示会跟着切换语言一起变；断网、超时等浏览器报错改成易懂的提示。
+- 判断依据和整体解读的长度上限按字符宽度计算，英文不再被过早截断，截断时在单词边界处加「…」。
+- 导入时有几行认不出发言人，会明确提示在前面加「名字：」。
+- 无障碍：页面语言标记在首次渲染前就设置好；语言按钮带 lang 和按下状态；非中英文浏览器按系统语言列表选择。
+
+### 修复
+
+- 搜索结果和关键时刻里，没有秒数的时间（如 21:03）会被错误截成「21」。
+- 导出报告里中文日期（如 2026年8月1日）的日期范围被截断。
+- 回复详情里评分后多出一个「 · 」。
+
+### 其他
+
+- `启动.bat`：更新到新版本后依赖有变化时会自动重新安装；端口跟随 `.env` 里的 PORT。
+- `npm run release`：推送前先检查 gh 是否已登录、本地是否落后于 GitHub，避免只推了标签却没建 Release。
+- README 加上真实界面截图，中英文说明同步；`.env.example` 补充 LLM_PARALLEL 说明；包名改为 crush-monitor-universal。
+
+### English summary
+
+- After switching the interface language, results written in the other language get a re-run offer with the estimated cost (never automatic).
+- Long chats cost less: only the first batch writes the overall reading.
+- English polish: plurals, number formatting, translated recall/nudge notices, title-case dialog names; errors re-render in the current language.
+- Fixes: times without seconds were cut to the hour in search and key moments; Chinese dates in the report's date range; a stray separator in reply details.
+- Screenshots in the README, safer release script, and `启动.bat` reinstalls dependencies after an update and honors PORT from `.env`.
+
 ## v2.3.0（2026-09-26）：全英文使用
 
 ### 新增：切到 English 后，模型也用英文回答

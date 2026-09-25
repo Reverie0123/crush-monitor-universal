@@ -57,13 +57,17 @@ export function SettingsModal({
         >
           <button
             className={lang === "zh" ? "selected" : ""}
+            aria-pressed={lang === "zh"}
             onClick={() => setLang("zh")}
+            lang="zh"
           >
             中文
           </button>
           <button
             className={lang === "en" ? "selected" : ""}
+            aria-pressed={lang === "en"}
             onClick={() => setLang("en")}
+            lang="en"
           >
             English
           </button>
@@ -115,7 +119,7 @@ export function SettingsModal({
       <button className="secondary" onClick={on.disclaimer}>
         {t.settings.disclaimer}
       </button>
-      <p>{t.settings.saved(messageCount.toLocaleString())}</p>
+      <p>{t.settings.saved(messageCount)}</p>
       <details className="settings-section">
         <summary>{t.settings.avatars}</summary>
         <div className="avatar-pickers">

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "./api";
 import { DEFAULT_PRICES, loadPrices, savePrices, type Prices } from "./cost";
-import { errorText, messages, useT } from "./i18n";
+import { TextError, errorOf, errorText, say, useT, type Text } from "./i18n";
 
 export type PublicConfig = {
   provider: "openai" | "jev";
@@ -73,7 +73,9 @@ export function ModelSettings({
     openai: loadPrices("openai"),
     jev: loadPrices("jev"),
   }));
-  const [status, setStatus] = useState("");
+  const [status, setStatusState] = useState<Text>("");
+  // Wrapped so a Text function is stored, not called as a state updater.
+  const setStatus = (x: Text) => setStatusState(() => x);
   const [busy, setBusy] = useState(false);
   const t = useT();
 
@@ -84,11 +86,13 @@ export function ModelSettings({
         setSaved(c);
         setForm(c);
       })
-      .catch(() => setStatus(messages().model.loadFailed));
+      .catch(() => setStatus((t) => t.model.loadFailed));
   }, []);
 
   if (!form)
-    return <p className="settings-status">{status || t.model.loading}</p>;
+    return (
+      <p className="settings-status">{say(t, status) || t.model.loading}</p>
+    );
   const set = (patch: Partial<PublicConfig>) => setForm({ ...form, ...patch });
   const jev = form.provider === "jev";
   // The chat-model fields are shown (and sent) only when that model is used.
@@ -108,11 +112,11 @@ export function ModelSettings({
       jevKey.trim().startsWith("sk-or-") &&
       form!.jevPlatform !== "openrouter"
     ) {
-      setStatus(t.model.openrouterKey);
+      setStatus((t) => t.model.openrouterKey);
       return;
     }
     setBusy(true);
-    setStatus(test ? t.model.savingTest : t.model.saving);
+    setStatus((t) => (test ? t.model.savingTest : t.model.saving));
     try {
       const r = await apiFetch("/api/config", {
         method: "POST",
@@ -136,7 +140,8 @@ export function ModelSettings({
         }),
       });
       const body = await r.json();
-      if (!r.ok) throw new Error(errorText(body, t.model.saveFailed));
+      if (!r.ok)
+        throw new TextError(errorText(body, (t) => t.model.saveFailed));
       setSaved(body);
       setForm(body);
       setApiKey("");
@@ -148,13 +153,14 @@ export function ModelSettings({
           savePrices(pricesBy[p], p);
       onSaved?.(body);
       if (!test) {
-        setStatus(t.model.saved);
+        setStatus((t) => t.model.saved);
         return;
       }
       const result = await (
         await apiFetch("/api/config/test", { method: "POST" })
       ).json();
-      setStatus(
+      const reason = errorText(result, (t) => t.model.noReply);
+      setStatus((t) =>
         result.ok
           ? t.model.connected(
               result.chatModel
@@ -162,10 +168,10 @@ export function ModelSettings({
                 : result.model,
               (result.latencyMs / 1000).toFixed(1),
             )
-          : t.model.failed(errorText(result, t.model.noReply)),
+          : t.model.failed(say(t, reason)),
       );
     } catch (e) {
-      setStatus((e as Error).message);
+      setStatus(errorOf(e));
     } finally {
       setBusy(false);
     }
@@ -173,7 +179,7 @@ export function ModelSettings({
 
   async function clearCache() {
     await apiFetch("/api/cache", { method: "DELETE" });
-    setStatus(t.model.cacheCleared);
+    setStatus((t) => t.model.cacheCleared);
   }
 
   // The chat model's settings: the analysis model in DeepSeek / OpenAI mode,
@@ -415,7 +421,7 @@ export function ModelSettings({
       {locked && <p className="settings-note">{t.model.locked}</p>}
       {status && (
         <p className="settings-status" role="status">
-          {status}
+          {say(t, status)}
         </p>
       )}
     </div>
