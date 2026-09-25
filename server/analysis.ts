@@ -48,6 +48,7 @@ export const requestSchema = z
       .max(20)
       .optional(),
     task: z.enum(["overview", "other_messages", "self_message"]),
+    language: z.enum(["zh", "en"]).optional(),
     targetIds: z.array(z.string().max(80)).max(20),
     messages: z
       .array(

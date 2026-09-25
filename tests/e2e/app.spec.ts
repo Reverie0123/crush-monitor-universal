@@ -321,10 +321,18 @@ test.describe("English interface", () => {
     await expect(page.locator(".pending-run")).toContainText(
       /\d+ messages · Est\./,
     );
+    // Every analysis request asks the model to answer in English.
+    const languages: string[] = [];
+    page.on("request", (r) => {
+      if (r.url().includes("/api/analyze"))
+        languages.push(JSON.parse(r.postData() ?? "{}").language);
+    });
     await page.getByRole("button", { name: "Start Analysis" }).click();
     const done = page.locator(".analysis-status .completed");
     await expect(done).toContainText("Done", { timeout: 45_000 });
     await expect(page.locator(".emotion-tag").first()).toContainText("Happy");
+    expect(languages.length).toBeGreaterThan(0);
+    expect(new Set(languages)).toEqual(new Set(["en"]));
     await page.locator(".reply-tag").first().click();
     const review = page.getByRole("dialog", { name: "Reply review" });
     await expect(review).toContainText("Reply Rating:");

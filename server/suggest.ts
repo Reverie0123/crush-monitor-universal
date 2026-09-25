@@ -11,6 +11,7 @@ import { MAX_TEXT_CHARS } from "../shared/limits";
 import { LLMError, Masker, callModel, config, parseJSON } from "./llm";
 
 export const suggestSchema = z.object({
+  language: z.enum(["zh", "en"]).optional(),
   relation: z.enum(RELATION_KEYS),
   note: z.string().max(500).optional(),
   targetId: z.string().max(80),
@@ -38,6 +39,7 @@ const SYSTEM = `你是一个很会聊天、情商高又真诚的朋友，帮用�
 - 给出 2 条改写，风格可以不同（例如一条更温暖具体，一条更轻松俏皮），都要贴合前文的语境、两人的熟悉程度和你原本想表达的意思。
 - 像真人发微信：口语、简短，不要油腻、不要说教、不要施压，不要用破折号和书面语。
 - why 用一句话说明这样改好在哪里，要点出前文里的具体线索。
+- 改写要和 target 原回复用同一种语言（原回复是英文就用英文改写，是中文就用中文）。
 - 引用原话用「」，不要出现英文双引号。
 只输出 JSON：{"suggestions": [{"text": "...", "why": "..."}, {"text": "...", "why": "..."}]}`;
 
@@ -72,7 +74,13 @@ export async function suggest(
   for (let attempt = 0; attempt < 3; attempt++) {
     const reply = await callModel(
       [
-        { role: "system", content: SYSTEM },
+        {
+          role: "system",
+          content:
+            input.language === "en"
+              ? `${SYSTEM}\nwhy 用自然的英文写，把 self 称为 you；引用原话用 ‘ ’，不要出现英文双引号。`
+              : SYSTEM,
+        },
         { role: "user", content: user },
       ],
       signal,

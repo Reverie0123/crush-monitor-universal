@@ -41,14 +41,14 @@ import {
   setRequestLimits,
 } from "../shared/limits";
 import type { PublicConfig } from "./ModelSettings";
-import { errorText, useT } from "./i18n";
+import { errorText, useLang } from "./i18n";
 import {
   mergeMessages,
   parseChat,
   toMessages,
   withKind,
 } from "../shared/parser";
-import { exampleText } from "../shared/fixtures";
+import { englishExampleText, exampleText } from "../shared/fixtures";
 import {
   RUBRIC,
   meanQuality,
@@ -70,7 +70,7 @@ const VIEWS = [
 ];
 
 export default function App() {
-  const t = useT();
+  const { t, lang } = useLang();
   const a = useAnalysis();
   const spend = useSpend(a);
   const [messages, setMessages] = useState<Message[]>([]),
@@ -462,6 +462,7 @@ export default function App() {
         body: JSON.stringify({
           relation,
           note,
+          language: lang,
           targetId: id,
           messages: context,
         }),
@@ -557,7 +558,11 @@ export default function App() {
                 <p>{t.app.emptyBody}</p>
                 <button
                   className="text-button"
-                  onClick={() => prepare(exampleText(0))}
+                  onClick={() =>
+                    prepare(
+                      lang === "en" ? englishExampleText() : exampleText(0),
+                    )
+                  }
                 >
                   {t.app.tryExample} <ArrowUpRight size={16} />
                 </button>

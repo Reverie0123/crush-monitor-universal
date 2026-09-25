@@ -89,6 +89,8 @@ export type AnalysisRequest = {
   note?: string;
   /** The user's own explanations for specific target messages. */
   feedback?: { id: string; text: string }[];
+  /** Interface language: the model writes its reasons and reading in it. */
+  language?: "zh" | "en";
   messages: Message[];
   task: Task;
   targetIds: string[];
@@ -106,7 +108,7 @@ export type AnalysisResponse = {
 };
 export const MODEL = "openai-chat";
 // Bumped whenever the request shape changes, so a stale server can say so.
-export const API_VERSION = "2026-09-25.2";
+export const API_VERSION = "2026-09-26.1";
 // Bumped when prompts or answer shapes change, so saved results are re-analyzed.
 export const RUBRIC = "crush-2026-09-24.llm-5";
 type RelationInfo = {

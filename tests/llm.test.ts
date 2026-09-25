@@ -16,6 +16,8 @@ import { parseChat, toMessages, withKind } from "../shared/parser";
 import { INTENTS } from "../shared/intents";
 import { estimateJobs } from "../shared/estimate";
 import { overviewJob } from "../shared/incremental";
+import { suggest } from "../server/suggest";
+import { englishExampleText } from "../shared/fixtures";
 
 const realFetch = globalThis.fetch;
 afterEach(() => {
@@ -599,4 +601,68 @@ test("聊天模型回了 JSON 但没有 answers 时重问，不会当成全部�
   });
   assert.equal(calls.length, 2);
   assert.equal(r.answers.q.type === "noul" && r.answers.q.noul, 0.9);
+});
+
+test("英文界面时，分析请求要求模型用英文写理由；中文界面不加这一项", () => {
+  const messages = [msg("other", "hey, u free sat?", null, 0)];
+  const base = {
+    revision: 1,
+    relation: "crush" as const,
+    messages,
+    task: "other_messages" as const,
+    targetIds: ["m0"],
+  };
+  const en = buildRequest({ ...base, language: "en" });
+  const zh = buildRequest(base);
+  assert.equal(
+    (en.state as { outputLanguage?: string }).outputLanguage,
+    "English",
+  );
+  assert.equal("outputLanguage" in (zh.state as object), false);
+});
+
+test("回复建议：英文界面时说明用英文写，改写始终和原回复同一种语言", async () => {
+  env();
+  const calls = fakeModel(() =>
+    JSON.stringify({ suggestions: [{ text: "Sounds fun!", why: "Warmer." }] }),
+  );
+  const input = {
+    relation: "crush" as const,
+    targetId: "m1",
+    messages: [
+      {
+        id: "m0",
+        sender: "other" as const,
+        text: "movie tonight?",
+        timestamp: null,
+        kind: "text" as const,
+      },
+      {
+        id: "m1",
+        sender: "self" as const,
+        text: "ok",
+        timestamp: null,
+        kind: "text" as const,
+      },
+    ],
+  };
+  await suggest({ ...input, language: "en" });
+  await suggest(input);
+  const system = (i: number) => calls[i].messages[0].content as string;
+  assert.match(system(0), /why 用自然的英文写/);
+  assert.doesNotMatch(system(1), /why 用自然的英文写/);
+  assert.match(system(1), /同一种语言/);
+});
+
+test("英文示例聊天能直接导入，Me 被识别为自己", () => {
+  const parsed = parseChat(englishExampleText());
+  assert.deepEqual(parsed.warnings, []);
+  assert.deepEqual(
+    [...new Set(parsed.messages.map((m) => m.speaker))],
+    ["Me", "Alex"],
+  );
+  assert.equal(
+    toMessages(parsed.messages, "Me").filter((m) => m.sender === "self").length,
+    3,
+  );
 });

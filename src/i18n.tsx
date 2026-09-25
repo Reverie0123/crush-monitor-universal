@@ -24,6 +24,8 @@ function initialLang(): Lang {
 // For code outside React (reports, API error text) that needs the current text.
 let current: Lang = typeof navigator === "undefined" ? "zh" : initialLang();
 export const messages = (): Messages => DICTIONARIES[current];
+/** The interface language, sent with requests so the model answers in it. */
+export const currentLang = (): Lang => current;
 
 const I18n = createContext<{
   lang: Lang;

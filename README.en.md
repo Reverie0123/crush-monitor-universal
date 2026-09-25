@@ -25,7 +25,7 @@ AI doesn't know your relationship or what happens outside the chat. Take the res
 - **Privacy masking:** phone numbers, emails, ID and card numbers, and words you choose are replaced with placeholders before sending.
 - **English or Chinese interface:** switch with the **EN / 中** button at the top right (or in Chat settings); it applies instantly and is remembered. The first visit follows your browser's language.
 
-The whole interface is available in English: labels, emotions and intents, scores, settings, errors and the exported report. What the model writes — its reasoning, overall reading and reply suggestions — is currently in Chinese.
+In English mode everything is in English, including what the model writes: its reasoning, overall reading and weekly summaries. Reply suggestions are always written in the same language as your original message, so English chats get English rewrites. The sample chat is in English too.
 
 ## Model
 
@@ -84,7 +84,7 @@ Only two-person text conversations are supported—not images, audio, ZIP/HTML e
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) (in Chinese). Current version v2.2.0: English / Chinese interface.
+See [CHANGELOG.md](CHANGELOG.md) (in Chinese). Current version v2.3.0: full English support — the model writes its analysis in English when the interface is in English.
 
 ## Development
 

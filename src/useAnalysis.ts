@@ -29,7 +29,7 @@ import {
 } from "../shared/types";
 import type { SavedConversation, Trend } from "./storage";
 import { overLimit, requestLimits } from "../shared/limits";
-import { errorText, messages as currentText } from "./i18n";
+import { currentLang, errorText, messages as currentText } from "./i18n";
 type Progress = {
   done: number;
   total: number;
@@ -199,7 +199,7 @@ export function useAnalysis() {
     for (let attempt = 0; attempt < 4; attempt++) {
       const response = await apiFetch("/api/analyze", {
         method: "POST",
-        body: JSON.stringify(job),
+        body: JSON.stringify({ ...job, language: currentLang() }),
         signal,
       });
       if ([429, 529].includes(response.status) && attempt < 3) {

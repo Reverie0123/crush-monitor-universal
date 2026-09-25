@@ -42,3 +42,19 @@ export function exampleText(index: number) {
     .map(([s, t]) => `${s === "self" ? "我" : "Crush"}：${t}`)
     .join("\n");
 }
+
+/** The sample chat offered in the English interface. */
+const englishExample = [
+  ["self", "Want to grab dinner this Saturday?"],
+  ["other", "This week's kind of busy"],
+  ["self", "No worries, whenever you're free~"],
+  ["other", "But Sunday night works!"],
+  ["other", "Didn't you want to try that little wine bar?"],
+  ["self", "You remembered?! I'll book us a table for Sunday"],
+  ["other", "Of course I did. I actually listen when you talk :)"],
+] as const;
+export function englishExampleText() {
+  return englishExample
+    .map(([s, t]) => `${s === "self" ? "Me" : "Alex"}: ${t}`)
+    .join("\n");
+}
