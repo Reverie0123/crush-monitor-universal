@@ -1,6 +1,7 @@
 import { Modal } from "./ui";
 import { parseChat } from "../../shared/parser";
 import type { Parsed } from "../../shared/types";
+import { useT } from "../i18n";
 
 /** Pick which speaker is you before a pasted chat is imported. */
 export function ImportModal({
@@ -22,10 +23,11 @@ export function ImportModal({
   onConfirm: () => void;
   close: () => void;
 }) {
+  const t = useT();
   const names = [...new Set(parsed.map((x) => x.speaker))];
   const invalid = names.length > 2 || names.includes("未分配");
   return (
-    <Modal title="确认聊天里的你" close={close}>
+    <Modal title={t.importer.title} close={close}>
       <div className="role-options">
         {names
           .filter((n) => n !== "未分配")
@@ -43,12 +45,12 @@ export function ImportModal({
             className={role === "__self_absent__" ? "selected" : ""}
             onClick={() => setRole("__self_absent__")}
           >
-            这些都是对方的话
+            {t.importer.allOther}
           </button>
         )}
       </div>
       <label className="field">
-        识别到 {parsed.length} 条聊天
+        {t.importer.found(parsed.length)}
         <textarea
           value={raw}
           onChange={(e) => {
@@ -57,11 +59,7 @@ export function ImportModal({
           }}
         />
       </label>
-      {invalid && (
-        <p className="error">
-          请保留两个人的聊天，可改成「我：内容」「对方：内容」。
-        </p>
-      )}
+      {invalid && <p className="error">{t.importer.twoPeople}</p>}
       <button
         className="primary"
         disabled={
@@ -72,11 +70,9 @@ export function ImportModal({
         }
         onClick={onConfirm}
       >
-        导入聊天
+        {t.importer.import}
       </button>
-      <p className="import-hint">
-        导入后会先显示预计花费，确认后再点「开始分析」。
-      </p>
+      <p className="import-hint">{t.importer.note}</p>
     </Modal>
   );
 }
@@ -90,14 +86,15 @@ export function OverlapModal({
   onAppend: () => void;
   close: () => void;
 }) {
+  const t = useT();
   return (
-    <Modal title="这段可能重复了" close={close}>
-      <p>相同内容也可能是新消息，请选择如何合并。</p>
+    <Modal title={t.importer.overlapTitle} close={close}>
+      <p>{t.importer.overlapBody}</p>
       <button className="primary" onClick={onSkip}>
-        跳过重合部分
+        {t.importer.skip}
       </button>
       <button className="secondary" onClick={onAppend}>
-        作为新消息追加
+        {t.importer.append}
       </button>
     </Modal>
   );

@@ -24,7 +24,7 @@ export function topEmotions(probabilities?: Record<string, number>) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
     .map(([key, p]) => ({
-      key,
+      key: key as keyof typeof EMOTIONS,
       label: EMOTIONS[key as keyof typeof EMOTIONS].label,
       probability: p,
       percent: p > 0 && p < 0.005 ? "<1%" : `${Math.round(p * 100)}%`,

@@ -1,4 +1,5 @@
 import type { UsageTotal } from "./useAnalysis";
+import { messages } from "./i18n";
 import { requestLimits, type RequestLimits } from "../shared/limits";
 
 /**
@@ -124,10 +125,11 @@ export function listYuan(u: UsageTotal, p: Prices) {
   return listCost(u, p);
 }
 
+/** In the interface language. */
 export function formatYuan(v: number) {
-  return v < 0.01 ? "不到 ¥0.01" : `约 ¥${v < 1 ? v.toFixed(2) : v.toFixed(1)}`;
+  return messages().yuan(v);
 }
 
 export function formatTokens(n: number) {
-  return n >= 10000 ? `${(n / 10000).toFixed(n >= 1e6 ? 0 : 1)} 万` : String(n);
+  return messages().tokens(n);
 }

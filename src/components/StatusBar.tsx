@@ -6,23 +6,33 @@ import type { Analysis } from "../useAnalysis";
 import type { Spend } from "../useSpend";
 import type { Estimate } from "../../shared/estimate";
 import { requestLimits } from "../../shared/limits";
+import { useT } from "../i18n";
+import type { Messages } from "../locales/zh";
 
 /** e.g. "500 条 / 12,000 字" */
-const limitText = () =>
-  `${requestLimits.messages.toLocaleString()} 条 / ${requestLimits.chars.toLocaleString()} 字`;
+const limitText = (t: Messages) =>
+  t.status.limit(
+    requestLimits.messages.toLocaleString(),
+    requestLimits.chars.toLocaleString(),
+  );
 
-const RANGES: [string, number | null][] = [
-  ["全部", null],
-  ["最近 7 天", 7],
-  ["最近 30 天", 30],
-];
+const RANGES = [
+  ["all", null],
+  ["week", 7],
+  ["month", 30],
+] as const;
 
-function remaining(done: number, total: number, startedAt: number) {
+function remaining(
+  t: Messages,
+  done: number,
+  total: number,
+  startedAt: number,
+) {
   // Too early to extrapolate honestly.
   if (done < 3 || !startedAt || done >= total) return "";
   const ms = ((Date.now() - startedAt) / done) * (total - done);
   const min = Math.round(ms / 60000);
-  return min < 1 ? "不到 1 分钟" : `约 ${min} 分钟`;
+  return min < 1 ? t.status.lessThanMinute : t.status.minutes(min);
 }
 
 export function StatusBar({
@@ -50,37 +60,38 @@ export function StatusBar({
     retry: (ids: string[]) => void;
   };
 }) {
+  const t = useT();
   const busy = a.status === "loading";
   // Re-render each second while running so the remaining time stays current.
   const [, setNow] = useState(0);
   useEffect(() => {
     if (!busy) return;
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
   }, [busy]);
   const { done, total, startedAt, batched, range, count } = a.progress;
-  const eta = busy ? remaining(done, total, startedAt) : "";
+  const eta = busy ? remaining(t, done, total, startedAt) : "";
   // Level and range stay selectable after a run, so a quick run can be deepened.
   const controls = (
     <>
       <select
-        aria-label="分析档位"
+        aria-label={t.status.level}
         value={a.scope.level}
-        title={LEVELS[a.scope.level].detail}
+        title={t.levels[a.scope.level].detail}
         onChange={(e) =>
           a.setScope({ ...a.scope, level: e.target.value as Level })
         }
       >
         {(Object.keys(LEVELS) as Level[]).map((k) => (
-          <option key={k} value={k} title={LEVELS[k].detail}>
-            {LEVELS[k].label}
+          <option key={k} value={k} title={t.levels[k].detail}>
+            {t.levels[k].label}
           </option>
         ))}
       </select>
       <select
-        aria-label="分析范围"
+        aria-label={t.status.range}
         value={String(a.scope.days)}
-        title="逐句分析只看这段时间；整体好感始终读完整聊天"
+        title={t.status.rangeTitle}
         onChange={(e) =>
           a.setScope({
             ...a.scope,
@@ -88,9 +99,9 @@ export function StatusBar({
           })
         }
       >
-        {RANGES.map(([label, days]) => (
-          <option key={label} value={String(days)}>
-            {label}
+        {RANGES.map(([key, days]) => (
+          <option key={key} value={String(days)}>
+            {t.status.ranges[key]}
           </option>
         ))}
       </select>
@@ -103,19 +114,23 @@ export function StatusBar({
         {busy ? (
           <>
             <span className="working" />
-            正在分析 {done}/{total}
-            {eta && ` · 剩余${eta}`}
+            {t.status.analyzing(done, total)}
+            {eta && t.status.remaining(eta)}
             {spend.runCost > 0 &&
-              ` · 本次已花${formatYuan(spend.runCost).replace("约 ", "")}` +
+              t.status.spentSoFar(t.yuanShort(spend.runCost)) +
                 (spend.runEstimate
-                  ? ` / 预计${formatYuan(spend.runEstimate).replace("约 ", "")}`
+                  ? t.status.ofEstimate(t.yuanShort(spend.runEstimate))
                   : "")}
-            <button onClick={a.cancel}>停止</button>
+            <button onClick={a.cancel}>{t.status.stop}</button>
             {batched && (
               <span className="batch-note">
-                聊天已超过单次上限（{limitText()}），分批上传中
+                {t.status.batchRunning(limitText(t))}
                 {range &&
-                  `：正在分析第 ${range[0].toLocaleString()}–${range[1].toLocaleString()} 条，共 ${count.toLocaleString()} 条`}
+                  t.status.batchRange(
+                    range[0].toLocaleString(),
+                    range[1].toLocaleString(),
+                    count.toLocaleString(),
+                  )}
               </span>
             )}
           </>
@@ -123,42 +138,48 @@ export function StatusBar({
           // Nothing is sent until the user has seen the estimate.
           <span className="pending-run">
             {spend.capped
-              ? `已达到单次花费上限 ¥${spend.budget}，已暂停。`
+              ? t.status.capped(spend.budget ?? 0)
               : a.status === "error"
-                ? "分析未完成，"
+                ? t.status.incomplete
                 : a.stale
-                  ? "当前显示的是旧版规则的结果，"
+                  ? t.status.stale
                   : ""}
             {controls}
             {pending.lines
-              ? `待分析 ${pending.lines.toLocaleString()} 条`
-              : "只做整体分析"}
+              ? t.status.pendingLines(pending.lines.toLocaleString())
+              : t.status.overviewOnly}
             {pending.batched && (
               <span
                 className="batch-hint"
-                title={`一次最多读 ${limitText()}：逐句分析和走势分批覆盖全部消息，整体好感只读最近的部分。`}
+                title={t.status.batchHintTitle(limitText(t))}
               >
                 {pending.lines > requestLimits.batch
-                  ? "（超过单次上限，将分批上传）"
-                  : "（超过单次上限，整体只读最近部分）"}
+                  ? t.status.batchHintBig
+                  : t.status.batchHintSmall}
               </span>
-            )}{" "}
-            · 预计{formatYuan(spend.estimateCost(pending.estimate))}
-            {requestLimits.provider === "jev" && "（Jev 以平台账单为准）"}
+            )}
+            {t.status.estimate(
+              formatYuan(spend.estimateCost(pending.estimate)),
+            )}
+            {requestLimits.provider === "jev" && t.status.jevBill}
             <button
               className="start-run"
               disabled={!configured}
               onClick={on.start}
-              title={`约 ${pending.estimate.requests} 次分析请求，输入约 ${formatTokens(pending.estimate.input)}、输出约 ${formatTokens(pending.estimate.output)} tokens。按设置里的单价估算，并按过去几次的实际用量自动修正；实际以服务商账单为准。`}
+              title={t.status.startTitle(
+                pending.estimate.requests,
+                formatTokens(pending.estimate.input),
+                formatTokens(pending.estimate.output),
+              )}
             >
-              {spend.capped ? "继续分析" : "开始分析"}
+              {spend.capped ? t.status.resume : t.status.start}
             </button>
           </span>
         ) : a.status === "complete" ? (
           <span className="completed">
             <Check size={14} />
-            分析完成
-            <button onClick={on.overview}>娱乐参考</button>
+            {t.status.done}
+            <button onClick={on.overview}>{t.status.forFun}</button>
             {/* Still selectable: a quick run can be deepened without starting over. */}
             {controls}
           </span>
@@ -172,22 +193,22 @@ export function StatusBar({
         >
           <RotateCcw size={13} />{" "}
           {a.retrying.length
-            ? `正在重试 ${a.retrying.length} 条…`
-            : `只重试这 ${incomplete.length} 条未完成的（${formatYuan(retryCost)}）`}
+            ? t.status.retrying(a.retrying.length)
+            : t.status.retryOnly(incomplete.length, formatYuan(retryCost))}
         </button>
       )}
       {a.usage.requests > 0 && (
         <button
           className="spend"
           onClick={on.spend}
-          title="查看花费明细、设置单次上限，或按实际账单校准"
+          title={t.status.spendTitle}
         >
-          已花费 {formatYuan(spend.spent)}
+          {t.status.spent(formatYuan(spend.spent))}
         </button>
       )}
       {!configured && (
         <button className="inline-action warn" onClick={on.settings}>
-          还没有设置 API Key，点这里填写
+          {t.status.noKey}
         </button>
       )}
       {a.error && !spend.capped && <span className="error">{a.error}</span>}

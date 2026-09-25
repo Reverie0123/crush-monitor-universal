@@ -239,6 +239,15 @@ h2 {
   border-radius: 5px;
   color: #595e5c;
 }
+/* The language switch: a short text label among the icons. */
+.icon.lang-toggle {
+  min-width: 30px;
+  border: 1px solid #d6d9d7;
+  padding: 3px 6px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+}
 .chat-scroll {
   grid-column: 2;
   min-height: 0;
@@ -855,6 +864,13 @@ blockquote {
   .header-affinity strong {
     font-size: 27px;
   }
+  /* No room beside the icons for the longer English label; the number stays. */
+  html[lang="en"] .header-affinity > span:first-child {
+    display: none;
+  }
+  html[lang="en"] .affinity-breakdown > div {
+    grid-template-columns: 112px 1fr 32px;
+  }
   .contact-title {
     max-width: 27%;
   }
@@ -870,6 +886,10 @@ blockquote {
   }
 }
 @media (max-width: 550px) {
+  /* No room in the header on phones; the switch stays in chat settings. */
+  .icon.lang-toggle {
+    display: none;
+  }
   .app {
     padding: 0;
     height: 100dvh;
@@ -908,12 +928,20 @@ blockquote {
   .message-content {
     max-width: 82%;
   }
+  /* Centred absolutely it collides with the icons on a narrow screen; let
+     the header lay it out between the title and the tools instead. */
   .header-affinity {
+    position: static;
+    transform: none;
+    margin-left: auto;
     gap: 7px;
     padding-inline: 7px;
   }
   .header-affinity > span {
     font-size: 12px;
+  }
+  .header-tools {
+    gap: 6px;
   }
   .header-tools .icon:first-child {
     display: none;
@@ -1021,6 +1049,10 @@ blockquote {
   grid-template-columns: 70px 1fr 32px;
   gap: 10px;
   align-items: center;
+}
+/* English dimension names are longer than the four-character Chinese ones. */
+html[lang="en"] .affinity-breakdown > div {
+  grid-template-columns: 150px 1fr 32px;
 }
 .affinity-breakdown meter {
   width: 100%;

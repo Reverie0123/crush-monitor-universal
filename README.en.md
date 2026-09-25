@@ -23,8 +23,9 @@ AI doesn't know your relationship or what happens outside the chat. Take the res
 - **Two model choices:** DeepSeek / OpenAI by default, or the original Jev (via OpenRouter, Vercel or TypeSafe); keys and prices are kept separately for each.
 - **Your own key, cost shown:** runs locally with your own API credits and shows the estimated spend.
 - **Privacy masking:** phone numbers, emails, ID and card numbers, and words you choose are replaced with placeholders before sending.
+- **English or Chinese interface:** switch with the **EN / 中** button at the top right (or in Chat settings); it applies instantly and is remembered. The first visit follows your browser's language.
 
-The interface and analysis labels are in Chinese. This README provides English setup instructions; it does not add an English UI.
+The whole interface is available in English: labels, emotions and intents, scores, settings, errors and the exported report. What the model writes — its reasoning, overall reading and reply suggestions — is currently in Chinese.
 
 ## Model
 
@@ -33,7 +34,7 @@ This version calls an OpenAI-compatible Chat Completions API (DeepSeek by defaul
 - [Get a DeepSeek API key](https://platform.deepseek.com/api_keys)
 - OpenAI or other compatible services work too: change the address and model in the settings page.
 
-**You can still use the original Jev model:** in the settings page, switch to **Jev（原版模型）**, pick a platform ([OpenRouter](https://openrouter.ai/settings/keys), Vercel AI Gateway or TypeSafe) and paste that platform's key. Jev returns calibrated probabilities but no written reasons. Choose **仅 Jev** (Jev only, no reply suggestions) or **Jev + DeepSeek / OpenAI** (Jev analyzes, the chat model writes reply suggestions). Jev reads at most 500 messages / 12,000 characters per request; longer chats are sent in batches automatically, and the status bar shows which messages are being analyzed. Each service keeps its own key, so you can switch back and forth.
+**You can still use the original Jev model:** in the settings page, switch to **Jev (original model)**, pick a platform ([OpenRouter](https://openrouter.ai/settings/keys), Vercel AI Gateway or TypeSafe) and paste that platform's key. Jev returns calibrated probabilities but no written reasons. Choose **Jev only** (no reply suggestions) or **Jev + DeepSeek / OpenAI** (Jev analyzes, the chat model writes reply suggestions). Jev reads at most 500 messages / 12,000 characters per request; longer chats are sent in batches automatically, and the status bar shows which messages are being analyzed. Each service keeps its own key, so you can switch back and forth.
 
 ## Run locally
 
@@ -46,12 +47,12 @@ npm run build
 npm start
 ```
 
-Open [http://127.0.0.1:3178/](http://127.0.0.1:3178/), click the settings icon at the bottom left, paste your API key under **模型与接口** (Model & API), then **保存并测试连接** (Save & test). Leave the terminal running. On Windows you can also double-click `启动.bat`.
+Open [http://127.0.0.1:3178/](http://127.0.0.1:3178/), click the settings icon at the bottom left, paste your API key under **Model & API**, then **Save & test connection**. Leave the terminal running. On Windows you can also double-click `启动.bat`.
 
 ## Usage
 
-1. Paste a conversation, or click **导入文件** (Import file) to pick a `.txt` export. Export-tool summary headers are skipped automatically.
-2. Select your own name and click **开始分析** (Analyze). Relationship type and background are in **聊天设置** (Chat settings).
+1. Paste a conversation, or click **Import file** to pick a `.txt` export. Export-tool summary headers are skipped automatically.
+2. Select your own name, check the estimated cost at the bottom, and click **Start Analysis**. Relationship type and background are in **Chat settings**.
 3. Click a label for details and the model's reasons. The three buttons at the top right are trend, key moments and report export.
 4. Import more of the same conversation later: overlaps are merged and only new messages are analyzed.
 
@@ -83,7 +84,7 @@ Only two-person text conversations are supported—not images, audio, ZIP/HTML e
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) (in Chinese). Current version v2.1.0: switch back to the original Jev model, and long chats are sent in batches automatically.
+See [CHANGELOG.md](CHANGELOG.md) (in Chinese). Current version v2.2.0: English / Chinese interface.
 
 ## Development
 
@@ -94,7 +95,10 @@ npm run dev        # http://127.0.0.1:5178/
 npm test           # local tests; no model calls
 npm run test:e2e   # UI tests in Edge with local stand-ins for DeepSeek and Jev; free
 npm run check:live # real model check with the model chosen in .env; uses your API credits
+npm run release    # tag and publish the version in package.json (needs a matching CHANGELOG section)
 ```
+
+Interface text lives in `src/locales/zh.ts` and `src/locales/en.ts`. The English file's type is derived from the Chinese one, so a missing or extra key fails the build.
 
 ## License
 

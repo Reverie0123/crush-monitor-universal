@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "./api";
 import { DEFAULT_PRICES, loadPrices, savePrices, type Prices } from "./cost";
+import { errorText, messages, useT } from "./i18n";
 
 export type PublicConfig = {
   provider: "openai" | "jev";
@@ -49,7 +50,7 @@ const JEV_PLATFORMS = [
   },
   {
     key: "typesafe",
-    label: "TypeSafe 官方",
+    label: "TypeSafe",
     keyUrl: "https://console.typesafe.ai/",
   },
 ] as const;
@@ -74,6 +75,7 @@ export function ModelSettings({
   }));
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
+  const t = useT();
 
   useEffect(() => {
     apiFetch("/api/config")
@@ -82,11 +84,11 @@ export function ModelSettings({
         setSaved(c);
         setForm(c);
       })
-      .catch(() => setStatus("读取设置失败，请确认启动窗口还开着"));
+      .catch(() => setStatus(messages().model.loadFailed));
   }, []);
 
   if (!form)
-    return <p className="settings-status">{status || "正在读取设置…"}</p>;
+    return <p className="settings-status">{status || t.model.loading}</p>;
   const set = (patch: Partial<PublicConfig>) => setForm({ ...form, ...patch });
   const jev = form.provider === "jev";
   // The chat-model fields are shown (and sent) only when that model is used.
@@ -96,6 +98,8 @@ export function ModelSettings({
     setPricesBy((all) => ({ ...all, [form.provider]: p }));
   const platform =
     JEV_PLATFORMS.find((p) => p.key === form.jevPlatform) ?? JEV_PLATFORMS[0];
+  const platformName = (p: (typeof JEV_PLATFORMS)[number]) =>
+    p.key === "typesafe" ? t.model.typesafe : p.label;
 
   async function save(test = false) {
     // OpenRouter keys are recognisable; catch one pasted under another platform.
@@ -104,11 +108,11 @@ export function ModelSettings({
       jevKey.trim().startsWith("sk-or-") &&
       form!.jevPlatform !== "openrouter"
     ) {
-      setStatus("这看起来是 OpenRouter 的 Key，请把调用平台选成 OpenRouter");
+      setStatus(t.model.openrouterKey);
       return;
     }
     setBusy(true);
-    setStatus(test ? "正在保存并测试连接…" : "正在保存…");
+    setStatus(test ? t.model.savingTest : t.model.saving);
     try {
       const r = await apiFetch("/api/config", {
         method: "POST",
@@ -132,7 +136,7 @@ export function ModelSettings({
         }),
       });
       const body = await r.json();
-      if (!r.ok) throw new Error(body.error || "保存失败");
+      if (!r.ok) throw new Error(errorText(body, t.model.saveFailed));
       setSaved(body);
       setForm(body);
       setApiKey("");
@@ -144,16 +148,21 @@ export function ModelSettings({
           savePrices(pricesBy[p], p);
       onSaved?.(body);
       if (!test) {
-        setStatus("已保存，立即生效");
+        setStatus(t.model.saved);
         return;
       }
-      const t = await (
+      const result = await (
         await apiFetch("/api/config/test", { method: "POST" })
       ).json();
       setStatus(
-        t.ok
-          ? `连接成功：${t.model}，用时 ${(t.latencyMs / 1000).toFixed(1)} 秒`
-          : `连接失败：${t.error ?? "模型没有按要求回复"}`,
+        result.ok
+          ? t.model.connected(
+              result.chatModel
+                ? t.model.suggestModel(result.model, result.chatModel)
+                : result.model,
+              (result.latencyMs / 1000).toFixed(1),
+            )
+          : t.model.failed(errorText(result, t.model.noReply)),
       );
     } catch (e) {
       setStatus((e as Error).message);
@@ -164,7 +173,7 @@ export function ModelSettings({
 
   async function clearCache() {
     await apiFetch("/api/cache", { method: "DELETE" });
-    setStatus("已清除本地缓存的分析结果");
+    setStatus(t.model.cacheCleared);
   }
 
   // The chat model's settings: the analysis model in DeepSeek / OpenAI mode,
@@ -185,21 +194,19 @@ export function ModelSettings({
         ))}
       </div>
       <label className="field">
-        {jev ? "回复建议用的 API Key（DeepSeek / OpenAI）" : "API Key"}
+        {jev ? t.model.suggestKey : t.model.apiKey}
         <input
           type="password"
           autoComplete="off"
           value={apiKey}
           placeholder={
-            saved?.keyHint
-              ? `已设置（${saved.keyHint}），留空则不修改`
-              : "粘贴你的 API Key"
+            saved?.keyHint ? t.model.keySet(saved.keyHint) : t.model.pasteKey
           }
           onChange={(e) => setApiKey(e.target.value)}
         />
       </label>
       <label className="field">
-        接口地址
+        {t.model.baseURL}
         <input
           value={form.baseURL}
           onChange={(e) => set({ baseURL: e.target.value })}
@@ -207,19 +214,19 @@ export function ModelSettings({
       </label>
       <div className="field-row">
         <label className="field">
-          模型
+          {t.model.modelName}
           <input
             value={form.model}
             onChange={(e) => set({ model: e.target.value })}
           />
         </label>
         <label className="field">
-          推理强度
+          {t.model.effort}
           <select
             value={form.effort}
             onChange={(e) => set({ effort: e.target.value })}
           >
-            <option value="">不设置（DeepSeek 选这个）</option>
+            <option value="">{t.model.effortNone}</option>
             <option value="minimal">minimal</option>
             <option value="low">low</option>
             <option value="medium">medium</option>
@@ -228,7 +235,7 @@ export function ModelSettings({
         </label>
       </div>
       <label className="field">
-        随机度（temperature，留空用默认；越低结果越稳定）
+        {t.model.temperature}
         <input
           type="number"
           min={0}
@@ -248,7 +255,11 @@ export function ModelSettings({
 
   return (
     <div className="model-settings">
-      <div className="preset-row" role="group" aria-label="分析用的模型">
+      <div
+        className="preset-row"
+        role="group"
+        aria-label={t.model.analysisModel}
+      >
         <button
           className={!jev ? "selected" : ""}
           onClick={() => set({ provider: "openai" })}
@@ -259,18 +270,16 @@ export function ModelSettings({
           className={jev ? "selected" : ""}
           onClick={() => set({ provider: "jev" })}
         >
-          Jev（原版模型）
+          {t.model.jevOriginal}
         </button>
       </div>
       {saved && form.provider !== saved.provider && (
-        <p className="settings-note">
-          保存后切换。已经分析过的消息保留原来的结果，之后的新消息和整体判断用新模型。
-        </p>
+        <p className="settings-note">{t.model.switchNote}</p>
       )}
       {jev ? (
         <>
           <label className="field">
-            Jev 调用平台
+            {t.model.jevPlatform}
             <select
               value={form.jevPlatform}
               onChange={(e) => {
@@ -281,54 +290,52 @@ export function ModelSettings({
             >
               {JEV_PLATFORMS.map((p) => (
                 <option value={p.key} key={p.key}>
-                  {p.label}
+                  {platformName(p)}
                 </option>
               ))}
             </select>
           </label>
           <p className="settings-note">
-            在{" "}
+            {t.model.jevNoteApply}{" "}
             <a href={platform.keyUrl} target="_blank" rel="noreferrer">
-              {platform.label}
-            </a>{" "}
-            申请 Key。Jev 是原作者使用的 TypeSafe
-            判断模型，给出的概率经过专门校准，但不写判断理由。一次最多读 500 条
-            / 12,000
-            字，更长的聊天会自动分批上传（逐句分析覆盖全部消息，整体好感只读最近的部分）。Jev
-            按平台规则计费，下面的单价估算仅供参考。
+              {platformName(platform)}
+            </a>
+            {t.model.jevNoteRest}
           </p>
           <label className="field">
-            {platform.label} API Key
+            {t.model.platformKey(platformName(platform))}
             <input
               type="password"
               autoComplete="off"
               value={jevKey}
               placeholder={
                 saved?.jevKeyHints[form.jevPlatform]
-                  ? `已设置（${saved.jevKeyHints[form.jevPlatform]}），留空则不修改`
-                  : "粘贴你的 API Key"
+                  ? t.model.keySet(saved.jevKeyHints[form.jevPlatform])
+                  : t.model.pasteKey
               }
               onChange={(e) => setJevKey(e.target.value)}
             />
           </label>
-          <div className="preset-row" role="group" aria-label="回复建议">
+          <div
+            className="preset-row"
+            role="group"
+            aria-label={t.model.suggestions}
+          >
             <button
               className={!form.jevSuggest ? "selected" : ""}
               onClick={() => set({ jevSuggest: false })}
             >
-              仅 Jev
+              {t.model.jevOnly}
             </button>
             <button
               className={form.jevSuggest ? "selected" : ""}
               onClick={() => set({ jevSuggest: true })}
             >
-              Jev + DeepSeek / OpenAI
+              {t.model.jevPlus}
             </button>
           </div>
           <p className="settings-note">
-            {form.jevSuggest
-              ? "分析用 Jev；「这句可以怎么说更好」的回复建议由下面的模型来写。"
-              : "只用 Jev 分析，不提供回复建议（Jev 只会打分，不会写句子）。"}
+            {form.jevSuggest ? t.model.jevPlusNote : t.model.jevOnlyNote}
           </p>
           {form.jevSuggest && chatFields}
         </>
@@ -341,14 +348,14 @@ export function ModelSettings({
           checked={form.mask}
           onChange={(e) => set({ mask: e.target.checked })}
         />
-        发送前自动打码手机号、邮箱、身份证号、银行卡号
+        {t.model.mask}
       </label>
       <label className="field">
-        额外打码的词（真名、学校、地址等，用逗号分隔）
+        {t.model.maskWords}
         <textarea
           rows={2}
           value={form.maskWords}
-          placeholder="例如：张三，XX中学，幸福小区"
+          placeholder={t.model.maskWordsPlaceholder}
           onChange={(e) => set({ maskWords: e.target.value })}
         />
       </label>
@@ -358,16 +365,16 @@ export function ModelSettings({
           checked={form.cache}
           onChange={(e) => set({ cache: e.target.checked })}
         />
-        缓存分析结果：同样的内容再分析时不重复花钱
+        {t.model.cache}
       </label>
       <fieldset className="price-row">
         <legend>
-          {jev ? "Jev 的单价" : "单价"}
-          （元 / 百万 token，用于估算花费，请以服务商官网为准）
+          {jev ? t.model.jevPrices : t.model.prices}
+          {t.model.pricesUnit}
         </legend>
         {(["input", "cached", "output"] as const).map((k) => (
           <label key={k}>
-            {{ input: "输入", cached: "缓存命中", output: "输出" }[k]}
+            {t.model.priceKinds[k]}
             <input
               type="number"
               min={0}
@@ -383,7 +390,7 @@ export function ModelSettings({
           className="text-button"
           onClick={() => setPrices({ ...DEFAULT_PRICES })}
         >
-          恢复默认
+          {t.model.resetPrices}
         </button>
       </fieldset>
       <div className="settings-actions">
@@ -392,24 +399,20 @@ export function ModelSettings({
           disabled={busy || locked}
           onClick={() => save(true)}
         >
-          保存并测试连接
+          {t.model.saveTest}
         </button>
         <button
           className="secondary"
           disabled={busy || locked}
           onClick={() => save(false)}
         >
-          仅保存
+          {t.model.saveOnly}
         </button>
         <button className="secondary" disabled={busy} onClick={clearCache}>
-          清除本地缓存
+          {t.model.clearCache}
         </button>
       </div>
-      {locked && (
-        <p className="settings-note">
-          正在分析，停止或完成后才能保存模型设置。
-        </p>
-      )}
+      {locked && <p className="settings-note">{t.model.locked}</p>}
       {status && (
         <p className="settings-status" role="status">
           {status}

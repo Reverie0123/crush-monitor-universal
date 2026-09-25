@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
+import { useT } from "../i18n";
 
 export function Modal({
   title,
@@ -13,6 +14,7 @@ export function Modal({
   /** False hides the close button, for dialogs that must be answered. */
   closable?: boolean;
 }) {
+  const t = useT();
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const old = document.activeElement as HTMLElement;
@@ -56,7 +58,7 @@ export function Modal({
         <header>
           <h2>{title}</h2>
           {closable && (
-            <button className="icon" aria-label="关闭" onClick={close}>
+            <button className="icon" aria-label={t.close} onClick={close}>
               <X size={20} />
             </button>
           )}
@@ -68,15 +70,16 @@ export function Modal({
 }
 
 export function Reason({
-  title = "判断依据",
+  title,
   children,
 }: {
   title?: string;
   children: ReactNode;
 }) {
+  const t = useT();
   return (
     <div className="reason">
-      <strong>{title}</strong>
+      <strong>{title ?? t.reasoning}</strong>
       <p>{children}</p>
     </div>
   );

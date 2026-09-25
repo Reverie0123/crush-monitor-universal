@@ -41,6 +41,7 @@ import {
   setRequestLimits,
 } from "../shared/limits";
 import type { PublicConfig } from "./ModelSettings";
+import { errorText, useT } from "./i18n";
 import {
   mergeMessages,
   parseChat,
@@ -49,8 +50,6 @@ import {
 } from "../shared/parser";
 import { exampleText } from "../shared/fixtures";
 import {
-  ACTIONS,
-  RELATIONS,
   RUBRIC,
   meanQuality,
   type Message,
@@ -71,6 +70,7 @@ const VIEWS = [
 ];
 
 export default function App() {
+  const t = useT();
   const a = useAnalysis();
   const spend = useSpend(a);
   const [messages, setMessages] = useState<Message[]>([]),
@@ -93,8 +93,8 @@ export default function App() {
     [configured, setConfigured] = useState(true),
     // Null until the settings load: plans depend on the model's request limits.
     [provider, setProvider] = useState<PublicConfig["provider"] | null>(null),
-    // Why reply suggestions are unavailable; empty when they are available.
-    [noSuggest, setNoSuggest] = useState(""),
+    // Why reply suggestions are unavailable; null when they are available.
+    [noSuggest, setNoSuggest] = useState<"jevOnly" | "key" | null>(null),
     [highlight, setHighlight] = useState<string | null>(null),
     [suggesting, setSuggesting] = useState<string | null>(null),
     [suggestError, setSuggestError] = useState<{
@@ -111,10 +111,10 @@ export default function App() {
     setConfigured(!!c.configured);
     setNoSuggest(
       c.suggest
-        ? ""
+        ? null
         : c.provider === "jev" && !c.jevSuggest
-          ? "当前是「仅 Jev」模式，没有回复建议；可在设置里改成「Jev + DeepSeek / OpenAI」。"
-          : "写回复建议需要 DeepSeek / OpenAI 的 API Key，请在设置里填写。",
+          ? "jevOnly"
+          : "key",
     );
   }
   useEffect(() => {
@@ -155,9 +155,7 @@ export default function App() {
   function updateAvatars(change: (old: Avatars) => Avatars) {
     setAvatars((old) => {
       const next = change(old);
-      saveAvatars(next).catch(() =>
-        setStorageError("头像保存失败，可能存储空间不足。"),
-      );
+      saveAvatars(next).catch(() => setStorageError(t.app.avatarSaveFailed));
       return next;
     });
   }
@@ -198,9 +196,7 @@ export default function App() {
       })
       .catch(() => {
         if (live) {
-          setStorageError(
-            "本机记录读取失败，请检查浏览器存储权限。为避免覆盖旧记录，暂不自动保存。",
-          );
+          setStorageError(t.app.storageReadFailed);
           setReady(true);
         }
       });
@@ -216,9 +212,7 @@ export default function App() {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = null;
     void saveConversation(pendingSave.current).catch(() =>
-      setStorageError(
-        "本机保存失败，可能存储空间不足。当前页面仍可使用，请勿刷新以免丢失未保存记录。",
-      ),
+      setStorageError(t.app.storageSaveFailed),
     );
   };
   useEffect(() => {
@@ -367,7 +361,7 @@ export default function App() {
       return;
     }
     if (!m.added) {
-      setNotice("没有新增消息，这段已经导入过了。");
+      setNotice(t.app.nothingNew);
       setInput("");
       return;
     }
@@ -377,7 +371,7 @@ export default function App() {
   function prepare(text: string) {
     if (!text.trim()) return;
     if (text.length > 250000) {
-      setNotice("这次粘贴超过25万字符，请分几次追加；历史记录不会被截断。");
+      setNotice(t.app.pasteTooLong);
       return;
     }
     const p = parseChat(text);
@@ -393,7 +387,11 @@ export default function App() {
     }
     setRaw(text);
     setParsed(p.messages);
-    setRole(names.includes(self) ? self : names.includes("我") ? "我" : "");
+    setRole(
+      names.includes(self)
+        ? self
+        : (["我", "Me", "me"].find((n) => names.includes(n)) ?? ""),
+    );
     setImporting(true);
   }
   function confirmImport() {
@@ -412,7 +410,7 @@ export default function App() {
     pendingSave.current = null;
     void saveConversation(null)
       .then(() => setStorageError(""))
-      .catch(() => setStorageError("本机记录删除失败，请重试清空。"));
+      .catch(() => setStorageError(t.app.clearFailed));
     setMessages([]);
     setInput("");
     setSelf("");
@@ -430,7 +428,7 @@ export default function App() {
       sender: m.sender === "self" ? ("other" as const) : ("self" as const),
     }));
     setSelf(other);
-    setOther(self === "__self_absent__" ? "我" : self);
+    setOther(self === "__self_absent__" ? t.me : self);
     updateAvatars((v) => ({ self: v.other, other: v.self }));
     setMessages(ms);
     a.reset(true);
@@ -469,7 +467,7 @@ export default function App() {
         }),
       });
       const body = await r.json();
-      if (!r.ok) throw new Error(body.error || "生成失败");
+      if (!r.ok) throw new Error(errorText(body, t.app.suggestFailed));
       a.annotate(id, { suggestions: body.suggestions });
       // Suggestions are paid requests too; count them in 已花费.
       if (body.usage) a.addUsage(body.usage);
@@ -486,18 +484,18 @@ export default function App() {
     setSettings(false);
   }
 
-  const me = self && self !== "__self_absent__" ? self : "我";
+  const me = self && self !== "__self_absent__" ? self : t.me;
   const chosen = messages.find((m) => m.id === detail);
   const closeDetail = () => setDetail(null);
   return (
     <main className="app">
       <div className="workspace">
-        <section className="wechat" aria-label="微信聊天">
-          <nav className="chat-rail" aria-label="聊天工具">
+        <section className="wechat" aria-label={t.app.wechat}>
+          <nav className="chat-rail" aria-label={t.app.rail}>
             <Avatar className="rail-avatar" src={avatars.self} name={me} />
             <button
               className="rail-active"
-              aria-label="滚动到最新聊天"
+              aria-label={t.app.scrollLatest}
               onClick={() => {
                 stay.current = true;
                 if (messages.length)
@@ -508,15 +506,15 @@ export default function App() {
             </button>
             <button
               className="rail-settings"
-              aria-label="聊天设置"
+              aria-label={t.app.chatSettings}
               onClick={() => setSettings(true)}
             >
               <Settings2 size={22} />
             </button>
           </nav>
           <ChatHeader
-            title={messages.length ? other : "微信聊天"}
-            subtitle={RELATIONS[relation]}
+            title={messages.length ? other : t.app.wechat}
+            subtitle={t.relations[relation]}
             value={ov?.affinity.value}
             delta={delta}
             hasChat={messages.length > 0}
@@ -555,13 +553,13 @@ export default function App() {
           >
             {!messages.length ? (
               <div className="empty">
-                <h2>粘贴聊天记录</h2>
-                <p>支持微信、QQ 复制记录及 WhatsApp 文本导出</p>
+                <h2>{t.app.emptyTitle}</h2>
+                <p>{t.app.emptyBody}</p>
                 <button
                   className="text-button"
                   onClick={() => prepare(exampleText(0))}
                 >
-                  用一段示例试试 <ArrowUpRight size={16} />
+                  {t.app.tryExample} <ArrowUpRight size={16} />
                 </button>
               </div>
             ) : (
@@ -611,17 +609,19 @@ export default function App() {
               className="reply-summary"
               onClick={() => setDetail("performance")}
             >
-              <span>我的发挥</span>
-              <strong>{replyRating(quality)?.label ?? "—"}</strong>
-              {quality != null && <span>{quality}分</span>}
+              <span>{t.app.myPerformance}</span>
+              <strong>{replyRating(quality)?.label ?? t.dash}</strong>
+              {quality != null && <span>{t.points(quality)}</span>}
             </button>
             <span className="insight-divider" />
             <button
               className="action-summary"
               onClick={() => setDetail("action")}
             >
-              <span>下一步</span>
-              <strong>{ov ? ACTIONS[ov.action]?.label : "等你导入聊天"}</strong>
+              <span>{t.app.nextStep}</span>
+              <strong>
+                {ov ? t.actions[ov.action]?.label : t.app.waitingImport}
+              </strong>
               <ArrowRight size={14} />
             </button>
           </div>
@@ -729,16 +729,13 @@ export default function App() {
         />
       )}
       {detail === "trend" && (
-        <Modal title="关系走势" close={closeDetail}>
+        <Modal title={t.app.trendTitle} close={closeDetail}>
           <Trend periods={a.periods} messages={messages} onJump={jump} />
-          <p>
-            每个点是这段时间的好感信号评分，只看这段时间和一点前文。变化超过 10
-            分的地方标出了涨跌，点圆点或原话可跳到聊天里对应的位置。
-          </p>
+          <p>{t.app.trendNote}</p>
         </Modal>
       )}
       {detail === "moments" && (
-        <Modal title="关键时刻" close={closeDetail}>
+        <Modal title={t.app.momentsTitle} close={closeDetail}>
           <Moments
             events={a.events}
             messages={messages}
@@ -772,13 +769,13 @@ export default function App() {
         <SpendModal usage={a.usage} spend={spend} close={closeDetail} />
       )}
       {detail === "clear" && (
-        <Modal title="开始新的聊天？" close={closeDetail}>
-          <p>当前聊天、分析和本机保存的记录都会删除。</p>
+        <Modal title={t.app.clearTitle} close={closeDetail}>
+          <p>{t.app.clearBody}</p>
           <button className="primary" onClick={clear}>
-            开始新聊天
+            {t.app.clearConfirm}
           </button>
           <button className="secondary" onClick={closeDetail}>
-            保留当前聊天
+            {t.app.clearKeep}
           </button>
         </Modal>
       )}
@@ -789,7 +786,13 @@ export default function App() {
           m={chosen}
           result={a.lines[chosen.id]}
           configured={configured}
-          noSuggest={noSuggest}
+          noSuggest={
+            noSuggest === "jevOnly"
+              ? t.app.noSuggestJevOnly
+              : noSuggest === "key"
+                ? t.app.noSuggestKey
+                : ""
+          }
           suggesting={suggesting === chosen.id}
           suggestError={
             suggestError?.id === chosen.id ? suggestError.message : ""

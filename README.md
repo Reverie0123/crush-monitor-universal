@@ -11,6 +11,7 @@
 ## 特点
 
 - **微信风格界面**：还原聊天气泡，分析结果直接显示在消息下方。
+- **中英双语界面**：右上角「EN / 中」一键切换（设置里也可以），立即生效并会记住；第一次打开按浏览器语言决定。模型写的判断依据和建议目前仍是中文。
 - **情绪与意图**：每句两行标签，从 12 类情绪、36 类意图（含学术讨论）中分别展示概率最高的三项。
 - **好感度与回复评级**：顶部显示好感信号评分，自己的回复按 SSS 到 D 分档，并给出下一步建议。
 - **两种模型可选**：默认用 DeepSeek / OpenAI，也可以切回原版的 Jev（经 OpenRouter、Vercel 或 TypeSafe 调用），两边的 Key 和单价分开保存。
@@ -98,7 +99,7 @@ iMessage 等软件复制后若只有正文，没有发送人，请先补上 `Ale
 
 ## 更新记录
 
-各版本的更新内容见 [CHANGELOG.md](CHANGELOG.md)。当前版本 v2.1.0：可以切回原版的 Jev 模型，长聊天自动分批。
+各版本的更新内容见 [CHANGELOG.md](CHANGELOG.md)。当前版本 v2.2.0：中英双语界面。
 
 ## 和原版的主要差异
 
@@ -117,7 +118,10 @@ npm run dev        # 开发模式：http://127.0.0.1:5178/
 npm test           # 单元测试，不调用模型
 npm run test:e2e   # 界面测试：用 Edge 打开真实页面，DeepSeek 和 Jev 都换成本地假服务，不花钱
 npm run check:live # 真实模型调用检查，用 .env 里选的模型，使用自己的 API 额度
+npm run release    # 发布 package.json 里的版本：检查、打标签、推送、建 GitHub Release（CHANGELOG 里要有对应一节）
 ```
+
+界面文字集中在 `src/locales/zh.ts` 和 `src/locales/en.ts`。英文文件的类型由中文文件推导，漏翻或多出的 key 会直接编译失败。
 
 ## License
 

@@ -3,6 +3,7 @@ import { Modal } from "./ui";
 import { calibrate, formatTokens, formatYuan, savePrices } from "../cost";
 import type { UsageTotal } from "../useAnalysis";
 import type { Spend } from "../useSpend";
+import { useT } from "../i18n";
 
 export function SpendModal({
   usage,
@@ -17,16 +18,17 @@ export function SpendModal({
   const [budget, setBudget] = useState(
     spend.budget ? String(spend.budget) : "",
   );
+  const t = useT();
   const { prices } = spend;
   const rows: [string, string][] = [
-    ["分析请求", `${usage.requests.toLocaleString()} 次`],
-    ["输入 tokens", formatTokens(usage.input)],
-    ["其中缓存命中", formatTokens(usage.cached)],
-    ["输出 tokens", formatTokens(usage.output)],
-    ["按单价估算", formatYuan(spend.spent)],
+    [t.spend.requests, t.spend.requestsValue(usage.requests.toLocaleString())],
+    [t.spend.input, formatTokens(usage.input)],
+    [t.spend.cached, formatTokens(usage.cached)],
+    [t.spend.output, formatTokens(usage.output)],
+    [t.spend.estimated, formatYuan(spend.spent)],
   ];
   return (
-    <Modal title="花费" close={close}>
+    <Modal title={t.spend.title} close={close}>
       <div className="spend-table">
         {rows.map(([k, v]) => (
           <div key={k}>
@@ -35,18 +37,16 @@ export function SpendModal({
           </div>
         ))}
       </div>
-      <h3>单次分析花费上限</h3>
-      <p>
-        一次分析的花费超过这个数就自动暂停，已完成的部分会保留，调高后可以接着分析。留空表示不限。
-      </p>
+      <h3>{t.spend.capTitle}</h3>
+      <p>{t.spend.capNote}</p>
       <label className="field">
-        上限（元）
+        {t.spend.capLabel}
         <input
           type="number"
           min={0}
           step={0.5}
           value={budget}
-          placeholder="例如 5"
+          placeholder={t.spend.capPlaceholder}
           onChange={(e) => setBudget(e.target.value)}
         />
       </label>
@@ -56,25 +56,23 @@ export function SpendModal({
           spend.setBudget(Number(budget) > 0 ? Number(budget) : null)
         }
       >
-        {spend.budget ? `保存（当前 ¥${spend.budget}）` : "保存上限"}
+        {t.spend.capSave(spend.budget)}
       </button>
-      <h3>按实际账单校准</h3>
+      <h3>{t.spend.calibrateTitle}</h3>
       <p>
-        单价在设置的「模型与接口」里可以改，DeepSeek / OpenAI 和 Jev
-        各有一套单价和校准。服务商分高峰、低谷时段定价，估算难免有偏差；切换过模型时，这段聊天的累计花费按当前模型的单价估算。
-        {prices.factor !== 1 &&
-          ` 当前已按你的账单校准（×${prices.factor.toFixed(2)}）。`}
+        {t.spend.calibrateNote}
+        {prices.factor !== 1 && t.spend.calibrated(prices.factor.toFixed(2))}
         {spend.estimateFactor !== 1 &&
-          ` 预估还按过去几次分析的实际用量自动修正了（×${spend.estimateFactor.toFixed(2)}）。`}
+          t.spend.learned(spend.estimateFactor.toFixed(2))}
       </p>
       <label className="field">
-        上面这些分析实际花了多少元？
+        {t.spend.billLabel}
         <input
           type="number"
           min={0}
           step={0.01}
           value={bill}
-          placeholder="例如 8.3"
+          placeholder={t.spend.billPlaceholder}
           onChange={(e) => setBill(e.target.value)}
         />
       </label>
@@ -88,7 +86,7 @@ export function SpendModal({
           setBill("");
         }}
       >
-        校准
+        {t.spend.calibrate}
       </button>
       {prices.factor !== 1 && (
         <button
@@ -99,7 +97,7 @@ export function SpendModal({
             savePrices(next);
           }}
         >
-          取消校准
+          {t.spend.uncalibrate}
         </button>
       )}
     </Modal>

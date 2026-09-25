@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useT } from "./i18n";
 
 const SIZE = 128;
 
@@ -66,13 +67,14 @@ export function AvatarPicker({
 }) {
   const input = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
+  const t = useT();
   return (
     <div className="avatar-picker">
       <button
         className="avatar-picker-button"
         onClick={() => input.current?.click()}
-        aria-label={`更换${label}的头像`}
-        title="点击更换头像"
+        aria-label={t.avatar.change(label)}
+        title={t.avatar.clickToChange}
       >
         <Avatar src={src} name={name} mine={mine} />
       </button>
@@ -83,11 +85,11 @@ export function AvatarPicker({
             className="text-button"
             onClick={() => input.current?.click()}
           >
-            {src ? "更换" : "上传图片"}
+            {src ? t.avatar.replace : t.avatar.upload}
           </button>
           {src && (
             <button className="text-button" onClick={() => onChange(undefined)}>
-              恢复默认
+              {t.avatar.reset}
             </button>
           )}
         </div>
@@ -106,7 +108,7 @@ export function AvatarPicker({
             setError("");
             onChange(await toAvatar(file));
           } catch {
-            setError("这张图片读不出来，换一张试试");
+            setError(t.avatar.unreadable);
           }
         }}
       />

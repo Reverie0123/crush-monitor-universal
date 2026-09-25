@@ -11,6 +11,7 @@ import {
   config,
   parseJSON,
 } from "./llm";
+import { errorBody } from "./errors";
 
 const ENV_PATH = join(process.cwd(), ".env");
 
@@ -144,13 +145,14 @@ export async function testConnection(signal?: AbortSignal) {
     try {
       const chat = await chatCheck(signal);
       return chat.ok
-        ? { ok, model: `${reply.model}，回复建议 ${chat.model}`, latencyMs }
-        : { ok: false, error: "Jev 正常，但回复建议用的模型没有按要求回复" };
+        ? { ok, model: reply.model, chatModel: chat.model, latencyMs }
+        : { ok: false, ...errorBody("jevChatNoReply") };
     } catch (error) {
-      return {
-        ok: false,
-        error: `Jev 正常，但回复建议用的 DeepSeek / OpenAI 连接失败（${(error as { status?: number }).status ?? "网络错误"}），请检查它的 Key 和接口地址`,
-      };
+      console.error(
+        "Reply-suggestion model check failed:",
+        (error as { status?: number }).status ?? "network error",
+      );
+      return { ok: false, ...errorBody("jevChatFailed") };
     }
   }
   const chat = await chatCheck(signal);

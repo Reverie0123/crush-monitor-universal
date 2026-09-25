@@ -1,15 +1,9 @@
 import type { MemoryEvent } from "../shared/memory";
-import {
-  ACTIONS,
-  RELATIONS,
-  STAGES,
-  type Message,
-  type Overview,
-  type Period,
-  type Relation,
-} from "../shared/types";
+import type { Message, Overview, Period, Relation } from "../shared/types";
 import { replyRating } from "../shared/ratings";
-import { MOMENT_LABELS, momentList } from "./Moments";
+import { momentList } from "./Moments";
+import { messages as currentText, periodName } from "./i18n";
+import type { Messages } from "./locales/zh";
 
 const esc = (s: unknown) =>
   String(s ?? "").replace(
@@ -20,7 +14,7 @@ const esc = (s: unknown) =>
       ]!,
   );
 
-function trendSvg(periods: Period[]) {
+function trendSvg(t: Messages, periods: Period[]) {
   const pts = periods.filter((p) => p.value != null);
   if (pts.length < 2) return "";
   const W = 600,
@@ -53,10 +47,10 @@ function trendSvg(periods: Period[]) {
   const labels = periods
     .map(
       (p, i) =>
-        `<text x="${x(i)}" y="${H - 6}" text-anchor="middle" font-size="10" fill="#999">${esc(p.label.replace(" 那周", ""))}</text>`,
+        `<text x="${x(i)}" y="${H - 6}" text-anchor="middle" font-size="10" fill="#999">${esc(periodName(t, p.label, true))}</text>`,
     )
     .join("");
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="好感度走势">${grid}<polyline points="${line}" fill="none" stroke="#cf657d" stroke-width="2"/>${dots}${labels}</svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(t.report.trendAria)}">${grid}<polyline points="${line}" fill="none" stroke="#cf657d" stroke-width="2"/>${dots}${labels}</svg>`;
 }
 
 export function buildReport(input: {
@@ -69,6 +63,9 @@ export function buildReport(input: {
   events: Record<string, MemoryEvent>;
   quality: number | null;
 }) {
+  // Built in the language the page is showing when the report is exported.
+  const t = currentText();
+  const r = t.report;
   const { overview: ov, messages } = input;
   const find = (id: string | null) => messages.find((m) => m.id === id);
   const first = messages.find((m) => m.timestamp)?.timestamp;
@@ -77,50 +74,50 @@ export function buildReport(input: {
   const rating = replyRating(input.quality);
   const body = `
 <header>
-  <p class="eyebrow">Crush 好感监控器 · 分析报告</p>
-  <h1>和 ${esc(input.other)} 的聊天</h1>
-  <p class="meta">${esc(RELATIONS[input.relation])} · ${messages.length} 条消息${first && last ? ` · ${esc(first.slice(0, 10))} 至 ${esc(last.slice(0, 10))}` : ""}</p>
+  <p class="eyebrow">${esc(r.eyebrow)}</p>
+  <h1>${esc(r.heading(input.other))}</h1>
+  <p class="meta">${esc(t.relations[input.relation])} · ${esc(r.messages(messages.length))}${first && last ? ` · ${esc(r.range(first.slice(0, 10), last.slice(0, 10)))}` : ""}</p>
 </header>
 ${
   ov
     ? `<section class="hero">
-  <div><span>好感度</span><strong>${ov.affinity.value ?? "—"}</strong><small>/100</small></div>
-  <div><span>关系阶段</span><strong class="small">${esc(STAGES[ov.stage] ?? "—")}</strong></div>
-  <div><span>我的发挥</span><strong class="small">${esc(rating?.label ?? "—")}</strong>${input.quality != null ? `<small>${input.quality} 分</small>` : ""}</div>
+  <div><span>${esc(r.affinity)}</span><strong>${ov.affinity.value ?? "—"}</strong><small>/100</small></div>
+  <div><span>${esc(r.stage)}</span><strong class="small">${esc(t.stages[ov.stage] ?? "—")}</strong></div>
+  <div><span>${esc(r.performance)}</span><strong class="small">${esc(rating?.label ?? "—")}</strong>${input.quality != null ? `<small>${esc(r.points(input.quality))}</small>` : ""}</div>
 </section>
-${ov.reading ? `<section><h2>整体解读</h2><p>${esc(ov.reading)}</p></section>` : ""}
-<section><h2>六个维度</h2><table>${(ov.affinityDimensions ?? [])
+${ov.reading ? `<section><h2>${esc(r.reading)}</h2><p>${esc(ov.reading)}</p></section>` : ""}
+<section><h2>${esc(r.dimensions)}</h2><table>${(ov.affinityDimensions ?? [])
         .map(
           (d) =>
-            `<tr><th>${esc(d.label)}</th><td class="num">${d.judgment.value ?? "—"}</td><td>${esc(d.judgment.reason ?? "")}</td></tr>`,
+            `<tr><th>${esc(t.dimensions[d.key as keyof Messages["dimensions"]] ?? d.label)}</th><td class="num">${d.judgment.value ?? "—"}</td><td>${esc(d.judgment.reason ?? "")}</td></tr>`,
         )
         .join("")}</table></section>
-<section><h2>下一步</h2><p><strong>${esc(ACTIONS[ov.action]?.label ?? "")}</strong>：${esc(ACTIONS[ov.action]?.detail ?? "")}</p>${ov.actionReason ? `<p class="reason">${esc(ov.actionReason)}</p>` : ""}</section>`
-    : "<p>还没有完成分析。</p>"
+<section><h2>${esc(r.next)}</h2><p><strong>${esc(t.actions[ov.action]?.label ?? "")}</strong>${esc(t.colon)}${esc(t.actions[ov.action]?.detail ?? "")}</p>${ov.actionReason ? `<p class="reason">${esc(ov.actionReason)}</p>` : ""}</section>`
+    : `<p>${esc(r.notDone)}</p>`
 }
 ${
   input.periods.length >= 2
-    ? `<section><h2>关系走势</h2>${trendSvg(input.periods)}<table>${input.periods
+    ? `<section><h2>${esc(r.trend)}</h2>${trendSvg(t, input.periods)}<table>${input.periods
         .map(
           (p) =>
-            `<tr><th>${esc(p.label)}</th><td class="num">${p.value ?? "—"}</td><td>${esc(p.reading ?? "")}</td></tr>`,
+            `<tr><th>${esc(periodName(t, p.label))}</th><td class="num">${p.value ?? "—"}</td><td>${esc(p.reading ?? "")}</td></tr>`,
         )
         .join("")}</table></section>`
     : ""
 }
 ${
   moments.length
-    ? `<section><h2>关键时刻</h2><ol class="moments">${moments
+    ? `<section><h2>${esc(r.moments)}</h2><ol class="moments">${moments
         .map(
           ({ event, message }) =>
-            `<li><span class="tag">${esc(MOMENT_LABELS[event.kind])}</span> <span class="who">${esc(message.sender === "self" ? input.self || "我" : input.other)}${message.timestamp ? ` · ${esc(message.timestamp)}` : ""}</span><blockquote>${esc(message.text)}</blockquote></li>`,
+            `<li><span class="tag">${esc(t.moments[event.kind])}</span> <span class="who">${esc(message.sender === "self" ? input.self || t.me : input.other)}${message.timestamp ? ` · ${esc(message.timestamp)}` : ""}</span><blockquote>${esc(message.text)}</blockquote></li>`,
         )
         .join("")}</ol></section>`
     : ""
 }
-${ov?.evidenceId && find(ov.evidenceId) ? `<section><h2>最能说明问题的一句</h2><blockquote>${esc(find(ov.evidenceId)!.text)}</blockquote></section>` : ""}
-<footer>由大模型根据聊天文字生成，只是娱乐参考，不代表对方的真实想法。生成于 ${esc(new Date().toLocaleString("zh-CN"))}。</footer>`;
-  return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>好感分析报告 · ${esc(input.other)}</title><style>
+${ov?.evidenceId && find(ov.evidenceId) ? `<section><h2>${esc(r.keyLine)}</h2><blockquote>${esc(find(ov.evidenceId)!.text)}</blockquote></section>` : ""}
+<footer>${esc(r.footer(new Date().toLocaleString(t.lang)))}</footer>`;
+  return `<!doctype html><html lang="${t.lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(r.title(input.other))}</title><style>
 body{margin:0;background:#f5f5f5;color:#222;font:15px/1.7 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
 main{max-width:720px;margin:0 auto;padding:32px 16px 48px}
 header h1{margin:4px 0;font-size:26px}.eyebrow{margin:0;color:#cf657d;font-size:13px}.meta{margin:0;color:#888;font-size:13px}
@@ -142,7 +139,7 @@ export function downloadReport(html: string, other: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `好感分析报告-${other.replace(/[\\/:*?"<>|]/g, "")}-${new Date().toISOString().slice(0, 10)}.html`;
+  a.download = `${currentText().report.file}-${other.replace(/[\\/:*?"<>|]/g, "")}-${new Date().toISOString().slice(0, 10)}.html`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

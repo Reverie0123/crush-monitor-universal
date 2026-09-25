@@ -5,6 +5,7 @@ import { join, dirname } from "node:path";
 import { analyze, requestSchema } from "./analysis";
 import { clearCache, config, pruneCache } from "./llm";
 import { API_VERSION } from "../shared/types";
+import { errorBody, type ErrorCode } from "./errors";
 import { suggest, suggestSchema } from "./suggest";
 import {
   publicConfig,
@@ -57,7 +58,7 @@ app.use("/api", (req, res, next) => {
       !sameHost(origin, req.headers.host) &&
       !["http://127.0.0.1:5178", "http://localhost:5178"].includes(origin))
   ) {
-    res.status(403).json({ error: "请求来源不允许" });
+    res.status(403).json(errorBody("forbidden"));
     return;
   }
   next();
@@ -67,10 +68,7 @@ app.use("/api", (req, res, next) => {
 app.use("/api", (req, res, next) => {
   const client = req.headers["x-api-version"];
   if (req.method === "POST" && client && client !== API_VERSION) {
-    res.status(409).json({
-      error:
-        "网页和后台版本不一致：请关掉启动窗口（黑色窗口）重新打开，再刷新网页",
-    });
+    res.status(409).json(errorBody("versionMismatch"));
     return;
   }
   next();
@@ -82,26 +80,32 @@ app.get("/api/config", (_req, res) => res.json(publicConfig()));
 app.post("/api/config", async (req, res) => {
   const valid = settingsSchema.safeParse(req.body);
   if (!valid.success) {
-    res.status(400).json({ error: "设置格式不正确，请检查接口地址等字段" });
+    res.status(400).json(errorBody("badSettings"));
     return;
   }
   try {
     res.json(await updateConfig(valid.data));
   } catch {
-    res.status(500).json({ error: "写入 .env 失败，请检查文件权限" });
+    res.status(500).json(errorBody("envWrite"));
   }
 });
 app.post("/api/config/test", async (_req, res) => {
   try {
     res.json(await testConnection(AbortSignal.timeout(30000)));
   } catch (error) {
-    const code = Number((error as { status?: number }).status);
+    const status = Number((error as { status?: number }).status);
     res.status(200).json({
       ok: false,
       // A timeout here has no status; it is about the connection, not an analysis.
-      error: code
-        ? errorText(code, (error as Error).message, config().provider === "jev")
-        : "30 秒内没有连上，请检查网络、Key 和设置后重试",
+      ...errorBody(
+        status
+          ? errorCode(
+              status,
+              (error as Error).message,
+              config().provider === "jev",
+            )
+          : "testTimeout",
+      ),
     });
   }
 });
@@ -110,35 +114,16 @@ app.delete("/api/cache", async (_req, res) => {
   res.json({ ok: true });
 });
 
-const ERRORS: Record<number, string> = {
-  400: "请求被模型拒绝，可能是输入过长或模型名不支持，请查看服务端日志",
-  401: "API 认证失败，请在设置里检查 API Key",
-  402: "API 账户余额不足，请充值后重试",
-  403: "当前 API 账号没有调用权限",
-  404: "找不到模型或接口，请在设置里检查模型名和接口地址",
-  413: "聊天太长，超出模型一次能读的范围，请只分析最近 7 天或 30 天",
-  422: "模型返回格式异常，请重试或缩小聊天范围",
-  429: "模型服务限流，请稍后重试",
-  529: "模型服务暂时繁忙，请重试",
-};
-// The same statuses mean different fixes when the analysis runs on Jev, whose
-// settings have no model name or address to check.
-const JEV_ERRORS: Record<number, string> = {
-  400: "Jev 没有接受这次请求，可能是聊天太长，请只分析最近 7 天或 30 天后重试",
-  401: "Jev 的 API Key 无效，请在设置里检查（要填所选调用平台的 Key）",
-  402: "调用 Jev 的平台余额不足，请到该平台充值后重试",
-  403: "没有调用 Jev 的权限：用 Vercel 调用需要先在 Vercel 绑定信用卡；其他平台请检查 Key 的权限",
-  404: "Jev 接口暂时不可用，可以在设置里换一个调用平台试试",
-  502: "连不上 Jev 的调用平台或请求超时，请检查网络后重试",
-};
-function errorText(code: number, detail?: string, jev = false) {
-  return (
-    (jev && JEV_ERRORS[code]) ||
-    ERRORS[code] ||
-    (code === 502 && detail === "network error"
-      ? "连不上模型服务，请检查网络和接口地址"
-      : "分析未完成，可能是网络超时。已保留聊天，可重试。")
-  );
+// Upstream statuses that have their own advice. The same statuses mean
+// different fixes on Jev, whose settings have no model name or address.
+const HTTP_CODES = [400, 401, 402, 403, 404, 413, 422, 429, 529];
+const JEV_CODES = [400, 401, 402, 403, 404, 502];
+function errorCode(status: number, detail?: string, jev = false): ErrorCode {
+  if (jev && JEV_CODES.includes(status)) return `jev${status}` as ErrorCode;
+  if (HTTP_CODES.includes(status)) return `http${status}` as ErrorCode;
+  return status === 502 && detail === "network error"
+    ? "network"
+    : "unfinished";
 }
 function fail(
   res: express.Response,
@@ -150,7 +135,7 @@ function fail(
   if (!res.headersSent && !aborted)
     res
       .status(code >= 400 && code < 600 ? code : 502)
-      .json({ error: errorText(code, (error as Error).message, jev) });
+      .json(errorBody(errorCode(code, (error as Error).message, jev)));
 }
 
 // Guards against runaway loops in the page, not normal use.
@@ -170,11 +155,11 @@ app.post("/api/analyze", async (req, res) => {
         .map((i) => `${i.path.join(".")}: ${i.message}`)
         .join("; "),
     );
-    res.status(400).json({ error: "聊天结构或长度不符合要求，请校正后重试" });
+    res.status(400).json(errorBody("badChat"));
     return;
   }
   if (!config().apiKey) {
-    res.status(503).json({ error: "还没有设置 API Key，请点左下角设置填写" });
+    res.status(503).json(errorBody("noKey"));
     return;
   }
   const now = Date.now();
@@ -195,7 +180,7 @@ app.post("/api/analyze", async (req, res) => {
             : Math.max(1, Math.ceil((minute.at + 60000 - now) / 1000)),
       ),
     );
-    res.status(429).json({ error: "分析请求较多，已保留进度，请稍后继续" });
+    res.status(429).json(errorBody("busy"));
     return;
   }
   minute.count++;
@@ -219,17 +204,20 @@ app.post("/api/analyze", async (req, res) => {
 app.post("/api/suggest", async (req, res) => {
   const valid = suggestSchema.safeParse(req.body);
   if (!valid.success) {
-    res.status(400).json({ error: "请求格式不正确" });
+    res.status(400).json(errorBody("badRequest"));
     return;
   }
   // Jev only scores; rewriting a reply needs a chat model.
   if (!config().suggest) {
-    res.status(503).json({
-      error:
-        config().provider === "jev" && !config().jevSuggest
-          ? "当前是「仅 Jev」模式，没有回复建议。需要的话在设置里改成「Jev + DeepSeek / OpenAI」并填写 Key"
-          : "写回复建议需要 DeepSeek / OpenAI 的 API Key，请在设置里填写",
-    });
+    res
+      .status(503)
+      .json(
+        errorBody(
+          config().provider === "jev" && !config().jevSuggest
+            ? "noSuggestJevOnly"
+            : "noSuggestKey",
+        ),
+      );
     return;
   }
   const controller = new AbortController();
@@ -261,7 +249,7 @@ app.use(
       .status(
         (err as { type?: string }).type === "entity.too.large" ? 413 : 400,
       )
-      .json({ error: "输入格式或体积不受支持" });
+      .json(errorBody("unsupported"));
   },
 );
 // Expired cache entries are removed at start-up and then hourly; a failed

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Message, Period } from "../shared/types";
+import { periodName, useT } from "./i18n";
 
 const W = 560,
   H = 220,
@@ -17,14 +18,9 @@ export function Trend({
   messages: Message[];
   onJump: (id: string) => void;
 }) {
+  const t = useT();
   const [hover, setHover] = useState<number | null>(null);
-  if (periods.length < 2)
-    return (
-      <p>
-        聊天需要跨越至少两周（或超过约 120
-        条）才能画出走势，分析完成后会自动生成。
-      </p>
-    );
+  if (periods.length < 2) return <p>{t.trend.needMore}</p>;
   const plotW = W - PAD.left - PAD.right,
     plotH = H - PAD.top - PAD.bottom;
   const x = (i: number) =>
@@ -53,11 +49,7 @@ export function Trend({
   return (
     <div className="trend">
       <div className="trend-chart">
-        <svg
-          viewBox={`0 0 ${W} ${H}`}
-          role="img"
-          aria-label="好感度随时间的变化"
-        >
+        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t.trend.aria}>
           {[0, 25, 50, 75, 100].map((v) => (
             <g key={v}>
               <line
@@ -89,7 +81,7 @@ export function Trend({
                 y={H - 8}
                 textAnchor="middle"
               >
-                {p.label.replace(" 那周", "")}
+                {periodName(t, p.label, true)}
               </text>
             ) : null,
           )}
@@ -149,12 +141,12 @@ export function Trend({
             style={{ left: `${(x(hover) / W) * 100}%` }}
             role="status"
           >
-            <strong>{h.label}</strong>
+            <strong>{periodName(t, h.label)}</strong>
             <span>
-              好感 {h.value ?? "—"}
+              {t.trend.affinity(String(h.value ?? t.dash))}
               {delta(hover) != null &&
-                ` (${delta(hover)! >= 0 ? "+" : ""}${delta(hover)})`}{" "}
-              · {h.count} 条
+                ` (${delta(hover)! >= 0 ? "+" : ""}${delta(hover)})`}
+              {t.trend.count(h.count)}
             </span>
           </div>
         )}
@@ -168,9 +160,9 @@ export function Trend({
               className={dv != null && Math.abs(dv) >= TURN ? "turn" : ""}
             >
               <div className="trend-list-head">
-                <strong>{p.label}</strong>
+                <strong>{periodName(t, p.label)}</strong>
                 <span>
-                  {p.value ?? "—"}
+                  {p.value ?? t.dash}
                   {dv != null && dv !== 0 && (
                     <small>{dv > 0 ? ` ↑${dv}` : ` ↓${-dv}`}</small>
                   )}
@@ -182,7 +174,7 @@ export function Trend({
                   className="quote-jump"
                   onClick={() => onJump(p.evidenceId!)}
                 >
-                  「{text(p.evidenceId)!.slice(0, 40)}」 跳到这句
+                  {t.quote(text(p.evidenceId)!.slice(0, 40))} {t.trend.jump}
                 </button>
               )}
             </li>

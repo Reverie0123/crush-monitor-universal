@@ -1,3 +1,4 @@
+import { messages } from "./i18n";
 import type {
   Message,
   Relation,
@@ -90,7 +91,8 @@ export function saveConversation(value: SavedConversation | null) {
         else tx.objectStore("workspace").delete("current");
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
-        tx.onabort = () => reject(tx.error ?? new Error("保存被中断"));
+        tx.onabort = () =>
+          reject(tx.error ?? new Error(messages().errors.saveInterrupted));
       });
     });
   queue = operation;

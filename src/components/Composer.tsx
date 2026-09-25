@@ -1,6 +1,7 @@
 import { useRef, type ReactNode } from "react";
 import { FileUp, Send } from "lucide-react";
 import { decodeText } from "./ui";
+import { useT } from "../i18n";
 
 /** Paste or import a chat. Parsing and merging happen in the parent. */
 export function Composer({
@@ -19,22 +20,23 @@ export function Composer({
   status: ReactNode;
 }) {
   const fileInput = useRef<HTMLInputElement>(null);
+  const t = useT();
   return (
     <div className="composer">
       <textarea
-        aria-label="粘贴聊天记录"
+        aria-label={t.composer.label}
         disabled={!ready}
         placeholder={
-          hasChat ? "粘贴新的聊天，自动合并重复记录" : "在这里粘贴聊天记录…"
+          hasChat ? t.composer.placeholderMore : t.composer.placeholderEmpty
         }
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onPaste={(e) => {
-          const t = e.clipboardData.getData("text");
-          if (t.trim()) {
+          const text = e.clipboardData.getData("text");
+          if (text.trim()) {
             e.preventDefault();
-            setInput(t);
-            onSubmit(t);
+            setInput(text);
+            onSubmit(text);
           }
         }}
         onKeyDown={(e) => {
@@ -48,10 +50,10 @@ export function Composer({
             className="send secondary-send"
             disabled={!ready}
             onClick={() => fileInput.current?.click()}
-            title="选择导出的 .txt 聊天记录；同一个人的记录可以多次导入，重复部分会自动合并"
+            title={t.composer.fileTitle}
           >
             <FileUp size={15} />
-            导入文件
+            {t.composer.importFile}
           </button>
           <button
             className="send"
@@ -59,7 +61,7 @@ export function Composer({
             onClick={() => onSubmit(input)}
           >
             <Send size={15} />
-            导入聊天
+            {t.composer.importChat}
           </button>
         </div>
         <input

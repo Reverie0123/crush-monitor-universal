@@ -4,7 +4,8 @@ import { Modal, Reason } from "./ui";
 import { EMOTIONS } from "../../shared/labels";
 import { INTENTS } from "../../shared/intents";
 import { replyRating } from "../../shared/ratings";
-import { statusLabel, type LineResult, type Message } from "../../shared/types";
+import type { LineResult, Message } from "../../shared/types";
+import { judgmentText, useT } from "../i18n";
 
 const pct = (p: number) =>
   p > 0 && p < 0.005 ? "<1%" : `${Math.round(p * 100)}%`;
@@ -39,22 +40,26 @@ export function LineDetail({
   const [draft, setDraft] = useState(savedCorrection ?? "");
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
+  const t = useT();
+  const rating = replyRating(result?.score.value);
   return (
     <Modal
-      title={m.sender === "other" ? "情绪与意图" : "回复评价"}
+      title={m.sender === "other" ? t.line.emotionTitle : t.line.replyTitle}
       close={close}
     >
       <blockquote>{m.text}</blockquote>
       {m.sender === "other" ? (
         <>
-          <h3>情绪</h3>
+          <h3>{t.line.emotion}</h3>
           <div className="emotion-distribution">
             {Object.entries(result?.emotions || {})
               .sort((a, b) => b[1] - a[1])
               .map(([key, p]) => (
                 <div key={key}>
                   <span>
-                    {EMOTIONS[key as keyof typeof EMOTIONS]?.label || key}
+                    {key in EMOTIONS
+                      ? t.emotions[key as keyof typeof EMOTIONS]
+                      : key}
                   </span>
                   <div className="probability-track">
                     <i style={{ width: `${p * 100}%` }} />
@@ -66,7 +71,7 @@ export function LineDetail({
           {result?.reasons?.emotion && (
             <Reason>{result.reasons.emotion}</Reason>
           )}
-          <h3 className="intent-detail-heading">意图</h3>
+          <h3 className="intent-detail-heading">{t.line.intent}</h3>
           <div className="intent-distribution">
             {Object.entries(result?.intents || {})
               .filter(([key, p]) => key in INTENTS && p > 0)
@@ -74,41 +79,33 @@ export function LineDetail({
               .map(([key, p]) => (
                 <div key={key} className="intent-detail-item">
                   <div>
-                    <strong>
-                      {INTENTS[key as keyof typeof INTENTS].label}
-                    </strong>
+                    <strong>{t.intents[key as keyof typeof INTENTS]}</strong>
                     <b>{pct(p)}</b>
                   </div>
-                  <p>{INTENTS[key as keyof typeof INTENTS].criteria}</p>
+                  <p>{t.intentHints[key as keyof typeof INTENTS]}</p>
                 </div>
               ))}
-            {!result?.intents && <p>意图尚未分析。</p>}
+            {!result?.intents && <p>{t.line.intentPending}</p>}
           </div>
           {result?.reasons?.intent && <Reason>{result.reasons.intent}</Reason>}
-          <p>
-            两行分别展示主要情绪与主要沟通意图的候选解读，不代表测量真实内心。每行最多显示前三项，保留原始概率，不重新凑成
-            100%。
-          </p>
+          <p>{t.line.distributionNote}</p>
         </>
       ) : (
         <>
           <h3 className="reply-verdict">
-            回复评级：{replyRating(result?.score.value)?.label ?? "待判断"}
+            {t.line.replyRating(rating?.label ?? t.pending)}
           </h3>
+          <p>{rating ? t.ratings[rating.label] : t.line.noContext}</p>
           <p>
-            {replyRating(result?.score.value)?.description ??
-              "当前语境不足以判断表达质量"}
-          </p>
-          <p>
-            回复评分 {result?.score.value ?? "—"} / 100 ·{" "}
-            {result && statusLabel(result.score)}
+            {t.line.replyScore(String(result?.score.value ?? t.dash))}
+            {result && judgmentText(t, result.score)}
           </p>
           {result?.score.reason && <Reason>{result.score.reason}</Reason>}
           {result && (
             <div className="suggestions">
               {result.suggestions?.length ? (
                 <>
-                  <h3>换个说法</h3>
+                  <h3>{t.line.rephrase}</h3>
                   {result.suggestions.map((s) => (
                     <div className="suggestion" key={s.text}>
                       <p className="suggestion-text">{s.text}</p>
@@ -127,10 +124,10 @@ export function LineDetail({
                 >
                   <Sparkles size={15} />
                   {suggesting
-                    ? "正在想…"
+                    ? t.line.thinking
                     : result.suggestions?.length
-                      ? "再换两种说法"
-                      : "这句可以怎么说更好？"}
+                      ? t.line.tryAgain
+                      : t.line.howBetter}
                 </button>
               ) : (
                 <p className="settings-note">{noSuggest}</p>
@@ -145,18 +142,16 @@ export function LineDetail({
       {result && !result.skipped && (
         <div className="correction">
           {result.correction && (
-            <Reason title="你的说明">{result.correction}</Reason>
+            <Reason title={t.line.yourNote}>{result.correction}</Reason>
           )}
           {!open ? (
             <button className="text-button" onClick={() => setOpen(true)}>
-              {result.correction
-                ? "修改说明，再判断一次"
-                : "判断不对？告诉模型实际情况"}
+              {result.correction ? t.line.editNote : t.line.wrong}
             </button>
           ) : (
             <>
               <label className="field">
-                这句话实际是什么意思？（只有你知道的背景，比如「这是我们之间的梗」「她在开玩笑」）
+                {t.line.noteLabel}
                 <textarea
                   rows={2}
                   maxLength={300}
@@ -179,17 +174,15 @@ export function LineDetail({
                   }
                 }}
               >
-                {reconsidering ? "正在重新判断…" : "按我的说明重新判断"}
+                {reconsidering ? t.line.reconsidering : t.line.reconsider}
               </button>
-              <p className="import-hint">
-                只重新分析这一句，调用一次模型，通常不到一分钱。你的说明会被记住，以后重新分析时也会用上。
-              </p>
+              <p className="import-hint">{t.line.reconsiderNote}</p>
               {error && <p className="error">{error}</p>}
             </>
           )}
         </div>
       )}
-      <p>结合当前已导入的上下文判断，不代表对方真实想法。</p>
+      <p>{t.line.disclaimer}</p>
     </Modal>
   );
 }

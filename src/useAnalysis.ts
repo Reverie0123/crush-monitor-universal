@@ -29,6 +29,7 @@ import {
 } from "../shared/types";
 import type { SavedConversation, Trend } from "./storage";
 import { overLimit, requestLimits } from "../shared/limits";
+import { errorText, messages as currentText } from "./i18n";
 type Progress = {
   done: number;
   total: number;
@@ -212,7 +213,8 @@ export function useAnalysis() {
         continue;
       }
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error || "分析失败");
+      if (!response.ok)
+        throw new Error(errorText(body, currentText().errors.analysisFailed));
       data = body;
       break;
     }
@@ -221,9 +223,9 @@ export function useAnalysis() {
       data.revision !== job.revision ||
       data.rubricVersion !== RUBRIC
     )
-      throw new Error("分析版本不匹配，请刷新重试");
+      throw new Error(currentText().errors.revisionMismatch);
     if ((await sha256(requestContextKey(job))) !== data.contextHash)
-      throw new Error("分析上下文不匹配，请重试");
+      throw new Error(currentText().errors.contextMismatch);
     const u = data.usage;
     setUsage((t) => ({
       input: t.input + u.input_tokens,
@@ -294,7 +296,7 @@ export function useAnalysis() {
     const first = overviewJob(messages, relation, revision, plan.events);
     if (!first.messages.length) {
       setStatus("error");
-      setError("记录已保存，但没有可分析的文字。单条过长的消息请拆分。");
+      setError(currentText().errors.nothingToAnalyze);
       // Nothing was sent; lets the caller drop what it prepared for this run.
       return false;
     }

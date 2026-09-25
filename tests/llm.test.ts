@@ -495,7 +495,7 @@ test("Jev + 其他模型时，测试连接两边都测；回复建议的 Key 坏
   try {
     const good = await testConnection();
     assert.equal(good.ok, true);
-    assert.match(String(good.model), /fake-chat/);
+    assert.equal((good as { chatModel?: string }).chatModel, "fake-chat");
     chatOk = false;
     const bad = await testConnection();
     assert.equal(bad.ok, false);

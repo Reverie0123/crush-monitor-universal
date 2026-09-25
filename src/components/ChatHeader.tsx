@@ -7,6 +7,7 @@ import {
   Search,
   TrendingUp,
 } from "lucide-react";
+import { useLang } from "../i18n";
 
 export function ChatHeader({
   title,
@@ -33,6 +34,7 @@ export function ChatHeader({
     settings: () => void;
   };
 }) {
+  const { t, lang, setLang } = useLang();
   return (
     <header className="chat-head">
       <div className="contact-title">
@@ -42,9 +44,9 @@ export function ChatHeader({
       <button
         className="header-affinity"
         onClick={on.overview}
-        aria-label="查看好感度详情"
+        aria-label={t.header.viewAffinity}
       >
-        <span>好感度</span>
+        <span>{t.header.affinity}</span>
         <strong key={value} className="affinity-number">
           {value ?? "—"}
         </strong>
@@ -65,11 +67,11 @@ export function ChatHeader({
       <div className="header-tools">
         {(
           [
-            ["搜索与筛选", Search, on.search, !hasChat],
-            ["关系走势", TrendingUp, on.trend, !hasChat],
-            ["关键时刻", Flag, on.moments, !hasChat],
-            ["导出分析报告", FileDown, on.report, !hasOverview],
-            ["新聊天", Plus, on.clear, false],
+            [t.header.search, Search, on.search, !hasChat],
+            [t.header.trend, TrendingUp, on.trend, !hasChat],
+            [t.header.moments, Flag, on.moments, !hasChat],
+            [t.header.report, FileDown, on.report, !hasOverview],
+            [t.header.newChat, Plus, on.clear, false],
           ] as const
         ).map(([label, Icon, onClick, disabled]) => (
           <button
@@ -84,8 +86,16 @@ export function ChatHeader({
           </button>
         ))}
         <button
+          className="icon lang-toggle"
+          aria-label={t.switchLabel}
+          title={t.switchLabel}
+          onClick={() => setLang(lang === "zh" ? "en" : "zh")}
+        >
+          {t.switchTo}
+        </button>
+        <button
           className="icon"
-          aria-label="更多聊天设置"
+          aria-label={t.header.more}
           onClick={on.settings}
         >
           <MoreHorizontal size={24} />

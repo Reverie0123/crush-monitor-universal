@@ -147,7 +147,7 @@ export function topIntents(probabilities?: Record<string, number>) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
     .map(([key, p]) => ({
-      key,
+      key: key as keyof typeof INTENTS,
       label: INTENTS[key as keyof typeof INTENTS].label,
       probability: p,
       percent: p < 0.005 ? "<1%" : `${Math.round(p * 100)}%`,

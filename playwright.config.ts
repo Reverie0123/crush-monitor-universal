@@ -29,6 +29,8 @@ export default defineConfig({
     baseURL: `http://127.0.0.1:${APP}`,
     channel: process.env.PW_CHANNEL || "msedge",
     headless: true,
+    // The page picks its language from the browser; these tests read Chinese.
+    locale: "zh-CN",
   },
   webServer: [
     {

@@ -1,21 +1,8 @@
 import { useState } from "react";
 import type { MemoryEvent } from "../shared/memory";
 import type { Message } from "../shared/types";
+import { useT } from "./i18n";
 
-export const MOMENT_LABELS: Record<MemoryEvent["kind"], string> = {
-  boundary: "拒绝 / 划清界限",
-  reopen: "重新靠近",
-  invitation: "邀约",
-  confirmation: "确认安排",
-  cancellation: "取消安排",
-  care: "关心",
-  preference: "说出喜好",
-  disclosure: "敞开心扉",
-  commitment: "表达心意",
-  question: "提问",
-  correction: "澄清",
-  none: "",
-};
 // Everyday kinds are hidden by default so the list reads as the relationship's milestones.
 const MINOR = new Set<MemoryEvent["kind"]>([
   "question",
@@ -51,6 +38,7 @@ export function Moments({
   other: string;
   onJump: (id: string) => void;
 }) {
+  const t = useT();
   const [all, setAll] = useState(false);
   const list = momentList(events, messages, all);
   return (
@@ -61,27 +49,25 @@ export function Moments({
           checked={all}
           onChange={(e) => setAll(e.target.checked)}
         />
-        也显示提问、澄清、说出喜好这类日常事件
+        {t.momentsView.showMinor}
       </label>
       {!list.length ? (
-        <p>
-          还没有识别到关键时刻。逐句分析完成后，邀约、关心、表达心意等事件会出现在这里。
-        </p>
+        <p>{t.momentsView.empty}</p>
       ) : (
         <ol className="moment-list">
           {list.map(({ event, message }) => (
             <li key={event.id} className={`moment moment-${event.kind}`}>
               <div className="moment-head">
-                <span className="moment-kind">{MOMENT_LABELS[event.kind]}</span>
+                <span className="moment-kind">{t.moments[event.kind]}</span>
                 <span className="moment-meta">
-                  {message.sender === "self" ? self || "我" : other}
+                  {message.sender === "self" ? self || t.me : other}
                   {message.timestamp &&
                     ` · ${message.timestamp.replace(/:\d{2}$/, "")}`}
-                  {event.status === "resolved" && " · 已回应"}
+                  {event.status === "resolved" && t.momentsView.answered}
                 </span>
               </div>
               <button className="quote-jump" onClick={() => onJump(event.id)}>
-                「{message.text.slice(0, 60)}」
+                {t.quote(message.text.slice(0, 60))}
               </button>
             </li>
           ))}

@@ -1,6 +1,6 @@
 {
   "name": "crush-monitor",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,7 +10,8 @@
     "test": "tsx --test tests/*.test.ts",
     "test:e2e": "playwright test",
     "check:live": "tsx scripts/check-live.ts",
-    "setup": "node scripts/setup.mjs"
+    "setup": "node scripts/setup.mjs",
+    "release": "node scripts/release.mjs"
   },
   "dependencies": {
     "@tanstack/react-virtual": "^3.14.13",

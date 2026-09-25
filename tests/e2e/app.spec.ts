@@ -298,3 +298,49 @@ test("Jev 模式：长聊天自动分批，每次不超过原版上限，并发�
   await expect(page.locator(".emotion-tag")).not.toHaveCount(0);
   await expect(page.locator(".retry-tag")).toHaveCount(0);
 });
+
+test.describe("English interface", () => {
+  test.use({ locale: "en-US" });
+
+  test("英文浏览器默认英文界面，能切到中文再切回来，刷新后记住选择", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page
+      .getByRole("dialog", { name: "Please read before using" })
+      .getByRole("button", { name: /I've read this/ })
+      .click();
+    await page.getByLabel("Paste a chat").fill(chat());
+    await page
+      .locator(".composer-actions")
+      .getByRole("button", { name: "Import chat" })
+      .click();
+    const who = page.getByRole("dialog", { name: "Which one is you?" });
+    await who.getByRole("button", { name: "我", exact: true }).click();
+    await who.getByRole("button", { name: "Import chat" }).click();
+    await expect(page.locator(".pending-run")).toContainText(
+      /\d+ messages · Est\./,
+    );
+    await page.getByRole("button", { name: "Start Analysis" }).click();
+    const done = page.locator(".analysis-status .completed");
+    await expect(done).toContainText("Done", { timeout: 45_000 });
+    await expect(page.locator(".emotion-tag").first()).toContainText("Happy");
+    await page.locator(".reply-tag").first().click();
+    const review = page.getByRole("dialog", { name: "Reply review" });
+    await expect(review).toContainText("Reply Rating:");
+    await page.keyboard.press("Escape");
+
+    // Switch to Chinese: everything on screen changes at once, no reload.
+    await page.getByRole("button", { name: "切换到中文" }).click();
+    await expect(done).toContainText("分析完成");
+    await expect(page.locator(".emotion-tag").first()).toContainText("开心");
+    await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
+
+    // The choice survives a reload, and switching back works too.
+    await page.reload();
+    await expect(done).toContainText("分析完成");
+    await page.getByRole("button", { name: "Switch to English" }).click();
+    await expect(done).toContainText("Done");
+    await expect(page.locator(".emotion-tag").first()).toContainText("Happy");
+  });
+});
