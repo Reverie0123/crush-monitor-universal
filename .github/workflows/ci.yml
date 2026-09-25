@@ -1,0 +1,24 @@
+# Runs on every push and pull request. No model is called: unit tests use no
+# network, and the UI tests use local stand-ins for DeepSeek and Jev.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    # Windows, because the UI tests use the Edge that ships with it.
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npm run test:e2e
