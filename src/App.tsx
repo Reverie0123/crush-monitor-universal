@@ -56,6 +56,7 @@ import {
   type Parsed,
   type Relation,
 } from "../shared/types";
+import { DEMO, REPO_URL } from "./demo";
 
 const OVERVIEW_KINDS = ["overview", "action", "performance"];
 // Views opened by name; any other `detail` value is a message id.
@@ -499,6 +500,14 @@ export default function App() {
   const closeDetail = () => setDetail(null);
   return (
     <main className="app">
+      {DEMO && (
+        <p className="demo-banner">
+          {t.demo.banner}{" "}
+          <a href={REPO_URL} target="_blank" rel="noopener">
+            {t.demo.getApp}
+          </a>
+        </p>
+      )}
       <div className="workspace">
         <section className="wechat" aria-label={t.app.wechat}>
           <nav className="chat-rail" aria-label={t.app.rail}>

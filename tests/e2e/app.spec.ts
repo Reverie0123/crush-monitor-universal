@@ -321,6 +321,8 @@ test.describe("English interface", () => {
     await expect(page.locator(".pending-run")).toContainText(
       /\d+ messages? to analyze · Est\./,
     );
+    // A new English visitor sees costs in dollars.
+    await expect(page.locator(".pending-run")).toContainText("$");
     // Every analysis request asks the model to answer in English.
     const languages: string[] = [];
     page.on("request", (r) => {

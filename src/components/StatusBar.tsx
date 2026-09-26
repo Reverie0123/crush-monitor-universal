@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { Check, RotateCcw } from "lucide-react";
-import { formatTokens, formatYuan } from "../cost";
+import {
+  currencySymbol,
+  formatMoney,
+  formatMoneyShort,
+  formatTokens,
+} from "../cost";
 import { LEVELS, type Level } from "../../shared/plan";
 import type { Analysis } from "../useAnalysis";
 import type { Spend } from "../useSpend";
@@ -115,9 +120,9 @@ export function StatusBar({
             {t.status.analyzing(done, total)}
             {eta && t.status.remaining(eta)}
             {spend.runCost > 0 &&
-              t.status.spentSoFar(t.yuanShort(spend.runCost)) +
+              t.status.spentSoFar(formatMoneyShort(spend.runCost)) +
                 (spend.runEstimate
-                  ? t.status.ofEstimate(t.yuanShort(spend.runEstimate))
+                  ? t.status.ofEstimate(formatMoneyShort(spend.runEstimate))
                   : "")}
             <button onClick={a.cancel}>{t.status.stop}</button>
             {batched && (
@@ -131,7 +136,7 @@ export function StatusBar({
           // Nothing is sent until the user has seen the estimate.
           <span className="pending-run">
             {spend.capped
-              ? t.status.capped(spend.budget ?? 0)
+              ? t.status.capped(spend.budget ?? 0, currencySymbol())
               : a.status === "error"
                 ? t.status.incomplete
                 : a.stale
@@ -154,7 +159,7 @@ export function StatusBar({
               </span>
             )}
             {t.status.estimate(
-              formatYuan(spend.estimateCost(pending.estimate)),
+              formatMoney(spend.estimateCost(pending.estimate)),
             )}
             {requestLimits.provider === "jev" && t.status.jevBill}
             <button
@@ -189,7 +194,7 @@ export function StatusBar({
           <RotateCcw size={13} />{" "}
           {a.retrying.length
             ? t.status.retrying(a.retrying.length)
-            : t.status.retryOnly(incomplete.length, formatYuan(retryCost))}
+            : t.status.retryOnly(incomplete.length, formatMoney(retryCost))}
         </button>
       )}
       {a.usage.requests > 0 && (
@@ -198,7 +203,7 @@ export function StatusBar({
           onClick={on.spend}
           title={t.status.spendTitle}
         >
-          {t.status.spent(formatYuan(spend.spent))}
+          {t.status.spent(formatMoney(spend.spent))}
         </button>
       )}
       {!configured && (

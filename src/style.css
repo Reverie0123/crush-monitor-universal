@@ -1668,3 +1668,29 @@ button.spend {
   color: #333;
   font-size: 14px;
 }
+
+/* Online demo: a slim note in the page margin above the window. */
+.demo-banner {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  margin: 0;
+  padding: 3px 14px;
+  border-radius: 0 0 8px 8px;
+  background: #43785c;
+  color: #fff;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+.demo-banner a {
+  color: #fff;
+  font-weight: 600;
+}
+@media (max-width: 550px) {
+  .app:has(.demo-banner) {
+    padding-top: 24px;
+  }
+}

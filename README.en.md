@@ -10,6 +10,8 @@ AI doesn't know your relationship or what happens outside the chat. Take the res
 
 ![The built-in sample chat analyzed with DeepSeek](docs/screenshot-en.png)
 
+**[Try the online demo](https://reverie0123.github.io/crush-monitor-universal/)**: nothing to install and no key needed. It opens on a sample chat already analyzed by a real model, so you can click around. To analyze your own chats, run it on your computer as described below.
+
 ## Features
 
 - **WeChat-style conversation view:** analysis sits beneath each message.
@@ -25,7 +27,7 @@ AI doesn't know your relationship or what happens outside the chat. Take the res
 - **Two model choices:** DeepSeek / OpenAI by default, or the original Jev (via OpenRouter, Vercel or TypeSafe); keys and prices are kept separately for each.
 - **Your own key, cost shown:** runs locally with your own API credits and shows the estimated spend.
 - **Privacy masking:** phone numbers, emails, ID and card numbers, and words you choose are replaced with placeholders before sending.
-- **Analysis levels:** "Quick" reads only the overall score and trend (usually under ¥1), "Standard" adds emotions and intentions for each of their messages, "Full" also grades your replies; you can also analyze just the last 7 or 30 days.
+- **Analysis levels:** "Quick" reads only the overall score and trend (usually a few cents), "Standard" adds emotions and intentions for each of their messages, "Full" also grades your replies; you can also analyze just the last 7 or 30 days.
 - **Spending under control:** after importing you see the estimated cost and start manually; set a per-run limit that pauses the analysis; spent / estimated and time left are shown while it runs.
 - **Correct a judgment:** if a line was read wrong, write what actually happened and the model re-reads that line with your note; later re-runs keep it.
 - **Search and filters:** search the chat by keyword, or jump between "my low-scoring replies", "their negative emotions" and more.
@@ -53,7 +55,13 @@ npm run build
 npm start
 ```
 
-Open [http://127.0.0.1:3178/](http://127.0.0.1:3178/), click the settings icon at the bottom left, paste your API key under **Model & API**, then **Save & test connection**. Leave the terminal running. On Windows you can also double-click `启动.bat`.
+Open [http://127.0.0.1:3178/](http://127.0.0.1:3178/), click the settings icon at the bottom left, paste your API key under **Model & API**, then **Save & test connection**. Leave the terminal running.
+
+Or use a start script; it installs dependencies on the first run (and after updates), then opens the page:
+
+- **Windows:** double-click `启动.bat`.
+- **Mac:** double-click `启动.command`. If macOS says the developer can't be verified, right-click it and choose **Open**.
+- **Linux:** run `./start.sh` in the project folder.
 
 ## Usage
 
@@ -84,7 +92,7 @@ Only two-person text conversations are supported—not images, audio, ZIP/HTML e
 
 - The affection score combines six weighted dimensions. An explicit refusal that still applies limits the score. **It is not the probability that someone likes you.**
 - With DeepSeek / OpenAI, each model request holds up to 2,000 messages / 60,000 characters and 9 requests run at once. The overview reads the most recent ~1,950 messages; per-line analysis sees the previous 150 and next 20. With Jev, the original limits apply: 500 messages / 12,000 characters, previous 80 messages, 2 requests at once. The page says so when the overview can't read the whole chat. Total history is limited only by browser storage.
-- Costs are shown in Chinese yuan (¥), because the default prices are DeepSeek's. For a service billed in US dollars, enter its prices converted to yuan in the settings; after a few runs you can type in your actual bill to calibrate the estimates. Your provider's bill is what counts.
+- Costs are shown in US dollars when you first open the English interface (yuan in Chinese); switch under **Model & API → Prices**, and prices and the limit you've entered are converted at 1 USD = 7.2 CNY. The default prices are DeepSeek's. After a few runs you can type in your actual bill to calibrate the estimates. Your provider's bill is what counts.
 - Jev writes no reasons; reply suggestions need **Jev + DeepSeek / OpenAI** mode. DeepSeek / OpenAI and Jev each keep their own prices and bill calibration; Jev estimates are approximate.
 - After switching models, lines already analyzed keep their results; new lines and the overview use the new model. Model settings can't be saved while an analysis is running.
 - Model replies are cached in `.cache/` so re-analyzing the same content is free; you can clear or disable this in settings. The cache contains chat text—never commit it.
@@ -93,7 +101,7 @@ Only two-person text conversations are supported—not images, audio, ZIP/HTML e
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) (in Chinese; releases from v2.4.0 end with an English summary). Current version v2.4.1: fixes long emotion names overlapping the bars in the English interface (v2.4.0 brought English polish and a re-run offer after switching language).
+See [CHANGELOG.md](CHANGELOG.md) (in Chinese; releases from v2.4.0 end with an English summary). Current version v2.5.0: an online demo, prices in US dollars, and start scripts for Mac and Linux.
 
 ## Development
 
@@ -104,6 +112,8 @@ npm run dev        # http://127.0.0.1:5178/
 npm test           # local tests; no model calls
 npm run test:e2e   # UI tests in Edge with local stand-ins for DeepSeek and Jev; free
 npm run check:live # real model check with the model chosen in .env; uses your API credits
+npm run build:demo # the online demo: a static build, deployed to GitHub Pages on every push to main
+npx tsx scripts/make-demo.ts http://127.0.0.1:3178  # redo the demo's sample analysis with a real model (a few cents)
 npm run release    # tag and publish the version in package.json (needs a matching CHANGELOG section)
 ```
 

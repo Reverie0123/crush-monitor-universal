@@ -4,7 +4,7 @@ import type { Estimate } from "../shared/estimate";
 import {
   cost,
   learnEstimateFactor,
-  listYuan,
+  listAmount,
   loadBudget,
   loadEstimateFactor,
   loadPrices,
@@ -68,8 +68,8 @@ export function useSpend(a: Analysis) {
         setEstimateFactor((f) =>
           learnEstimateFactor(
             f,
-            listYuan(asUsage(estimate), prices),
-            listYuan(diff(a.usage, usage), prices),
+            listAmount(asUsage(estimate), prices),
+            listAmount(diff(a.usage, usage), prices),
           ),
         );
       run.current = null;
@@ -93,7 +93,11 @@ export function useSpend(a: Analysis) {
   return {
     prices,
     setPrices: (p: Prices) => setPrices(p),
-    reloadPrices: () => setPrices(loadPrices()),
+    /** After settings change prices or the currency (which converts the limit too). */
+    reloadPrices: () => {
+      setPrices(loadPrices());
+      setBudgetState(loadBudget());
+    },
     budget,
     setBudget: (v: number | null) => {
       saveBudget(v);
@@ -107,7 +111,7 @@ export function useSpend(a: Analysis) {
     runEstimate: run.current?.estimate
       ? cost(asUsage(run.current.estimate), prices) * factor()
       : null,
-    /** Estimated yuan for a planned run, corrected by what past runs taught us. */
+    /** Estimated cost of a planned run, corrected by what past runs taught us. */
     estimateCost: (e: Estimate) => cost(asUsage(e), prices) * factor(),
     estimateFactor: factor(),
     begin,

@@ -1,6 +1,16 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "./api";
-import { DEFAULT_PRICES, loadPrices, savePrices, type Prices } from "./cost";
+import {
+  convertPrices,
+  currencySymbol,
+  defaultPrices,
+  loadCurrency,
+  loadPrices,
+  saveCurrency,
+  savePrices,
+  type Currency,
+  type Prices,
+} from "./cost";
 import { TextError, errorOf, errorText, say, useT, type Text } from "./i18n";
 
 export type PublicConfig = {
@@ -73,6 +83,7 @@ export function ModelSettings({
     openai: loadPrices("openai"),
     jev: loadPrices("jev"),
   }));
+  const [currency, setCurrency] = useState(loadCurrency);
   const [status, setStatusState] = useState<Text>("");
   // Wrapped so a Text function is stored, not called as a state updater.
   const setStatus = (x: Text) => setStatusState(() => x);
@@ -376,8 +387,35 @@ export function ModelSettings({
       <fieldset className="price-row">
         <legend>
           {jev ? t.model.jevPrices : t.model.prices}
-          {t.model.pricesUnit}
+          {t.model.pricesUnit(currencySymbol(currency))}
         </legend>
+        <div
+          className="preset-row"
+          role="group"
+          aria-label={t.model.currency}
+          title={t.model.currencyNote}
+        >
+          {(["CNY", "USD"] as const).map((c: Currency) => (
+            <button
+              key={c}
+              className={currency === c ? "selected" : ""}
+              aria-pressed={currency === c}
+              onClick={() => {
+                if (c === currency) return;
+                // Applies at once, like the language: saved amounts are
+                // converted, and so are the ones being edited here.
+                saveCurrency(c);
+                setPricesBy((all) => ({
+                  openai: convertPrices(all.openai, currency, c),
+                  jev: convertPrices(all.jev, currency, c),
+                }));
+                setCurrency(c);
+              }}
+            >
+              {t.model.currencies[c]}
+            </button>
+          ))}
+        </div>
         {(["input", "cached", "output"] as const).map((k) => (
           <label key={k}>
             {t.model.priceKinds[k]}
@@ -394,7 +432,7 @@ export function ModelSettings({
         ))}
         <button
           className="text-button"
-          onClick={() => setPrices({ ...DEFAULT_PRICES })}
+          onClick={() => setPrices(defaultPrices(currency))}
         >
           {t.model.resetPrices}
         </button>

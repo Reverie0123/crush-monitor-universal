@@ -44,10 +44,13 @@ export const zh = {
   colon: "：",
   quote: (s: string) => `「${s}」`,
   points: (n: number | string) => `${n} 分`,
-  yuan: (v: number) =>
-    v < 0.01 ? "不到 ¥0.01" : `约 ¥${v < 1 ? v.toFixed(2) : v.toFixed(1)}`,
-  yuanShort: (v: number) =>
-    v < 0.01 ? "不到¥0.01" : `¥${v < 1 ? v.toFixed(2) : v.toFixed(1)}`,
+  // s is the currency symbol, ¥ or $.
+  yuan: (v: number, s = "¥") =>
+    v < 0.01
+      ? `不到 ${s}0.01`
+      : `约 ${s}${v < 1 ? v.toFixed(2) : v.toFixed(1)}`,
+  yuanShort: (v: number, s = "¥") =>
+    v < 0.01 ? `不到${s}0.01` : `${s}${v < 1 ? v.toFixed(2) : v.toFixed(1)}`,
   tokens: (n: number) =>
     n >= 10000 ? `${(n / 10000).toFixed(n >= 1e6 ? 0 : 1)} 万` : String(n),
 
@@ -298,7 +301,8 @@ export const zh = {
       `聊天已超过单次上限（${limit}），分批上传中`,
     batchRange: (from: number, to: number, count: number) =>
       `：正在分析第 ${num(from)}–${num(to)} 条，共 ${num(count)} 条`,
-    capped: (budget: number) => `已达到单次花费上限 ¥${budget}，已暂停。`,
+    capped: (budget: number, s = "¥") =>
+      `已达到单次花费上限 ${s}${budget}，已暂停。`,
     incomplete: "分析未完成，",
     stale: "当前显示的是旧版规则的结果，",
     langChanged: "现有的分析是英文写的，重新分析会用中文，",
@@ -465,7 +469,11 @@ export const zh = {
     cache: "缓存分析结果：同样的内容再分析时不重复花钱",
     jevPrices: "Jev 的单价",
     prices: "单价",
-    pricesUnit: "（元 / 百万 token，用于估算花费，请以服务商官网为准）",
+    pricesUnit: (s: string) =>
+      `（${s === "$" ? "美元" : "元"} / 百万 token，用于估算花费，请以服务商官网为准）`,
+    currency: "币种",
+    currencies: { CNY: "¥ 人民币", USD: "$ 美元" },
+    currencyNote: "切换币种时，已填的单价和花费上限按 1 美元 = 7.2 元换算。",
     priceKinds: { input: "输入", cached: "缓存命中", output: "输出" },
     resetPrices: "恢复默认",
     saveTest: "保存并测试连接",
@@ -485,17 +493,18 @@ export const zh = {
     capTitle: "单次分析花费上限",
     capNote:
       "一次分析的花费超过这个数就自动暂停，已完成的部分会保留，调高后可以接着分析。留空表示不限。",
-    capLabel: "上限（元）",
+    capLabel: (s: string) => `上限（${s === "$" ? "美元" : "元"}）`,
     capPlaceholder: "例如 5",
-    capSave: (budget: number | null) =>
-      budget ? `保存（当前 ¥${budget}）` : "保存上限",
+    capSave: (budget: number | null, s = "¥") =>
+      budget ? `保存（当前 ${s}${budget}）` : "保存上限",
     calibrateTitle: "按实际账单校准",
     calibrateNote:
       "单价在设置的「模型与接口」里可以改，DeepSeek / OpenAI 和 Jev 各有一套单价和校准。服务商分高峰、低谷时段定价，估算难免有偏差；切换过模型时，这段聊天的累计花费按当前模型的单价估算。",
     calibrated: (f: string) => ` 当前已按你的账单校准（×${f}）。`,
     learned: (f: string) =>
       ` 预估还按过去几次分析的实际用量自动修正了（×${f}）。`,
-    billLabel: "上面这些分析实际花了多少元？",
+    billLabel: (s: string) =>
+      `上面这些分析实际花了多少${s === "$" ? "美元" : "元"}？`,
     billPlaceholder: "例如 8.3",
     calibrate: "校准",
     uncalibrate: "取消校准",
@@ -582,7 +591,12 @@ export const zh = {
     title: (name: string) => `好感分析报告 · ${name}`,
     file: "好感分析报告",
   },
+  demo: {
+    banner: "在线演示 · 示例聊天已提前分析好",
+    getApp: "下载使用 →",
+  },
   errors: {
+    demo: "这是在线演示，展示的是一段已经分析好的示例聊天。要分析自己的聊天，请下载到本机运行（免费开源）。",
     analysisFailed: "分析失败",
     revisionMismatch: "分析版本不匹配，请刷新重试",
     contextMismatch: "分析上下文不匹配，请重试",

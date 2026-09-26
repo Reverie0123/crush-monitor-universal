@@ -1,11 +1,12 @@
 {
   "name": "crush-monitor-universal",
-  "version": "2.4.1",
+  "version": "2.5.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "concurrently -k -n api,web \"tsx watch server/index.ts\" \"vite --host 127.0.0.1\"",
     "build": "tsc --noEmit && vite build",
+    "build:demo": "vite build --mode demo --base ./ --outDir dist-demo",
     "start": "tsx server/index.ts",
     "test": "tsx --test tests/*.test.ts",
     "test:e2e": "playwright test",

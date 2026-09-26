@@ -1,4 +1,4 @@
-import { messages } from "./i18n";
+import { currentLang, messages } from "./i18n";
 import type {
   Message,
   Relation,
@@ -9,6 +9,7 @@ import type {
 import type { MemoryEvent } from "../shared/memory";
 import type { UsageTotal } from "./useAnalysis";
 import type { Scope } from "../shared/plan";
+import { DEMO, demoConversation } from "./demo";
 export type Trend = { at: string; value: number | null; count: number };
 export type SavedConversation = {
   schema: 1;
@@ -34,7 +35,12 @@ export type SavedConversation = {
 let connection: Promise<IDBDatabase> | undefined;
 function db() {
   return (connection ??= new Promise<IDBDatabase>((resolve, reject) => {
-    const req = indexedDB.open("crush-monitor", 1);
+    // The demo keeps its own copy per language and version, so a visitor's
+    // edits never mix with the real app's data or an older sample.
+    const name = DEMO
+      ? `crush-monitor-demo-${currentLang()}-${__APP_VERSION__}`
+      : "crush-monitor";
+    const req = indexedDB.open(name, 1);
     req.onupgradeneeded = () => req.result.createObjectStore("workspace");
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => {
@@ -47,14 +53,14 @@ export async function loadConversation(): Promise<
   SavedConversation | undefined
 > {
   const database = await db();
-  return new Promise((resolve, reject) => {
+  return new Promise<SavedConversation | undefined>((resolve, reject) => {
     const req = database
       .transaction("workspace")
       .objectStore("workspace")
       .get("current");
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
-  });
+  }).then(async (saved) => saved ?? (DEMO ? demoConversation() : undefined));
 }
 /** Custom avatars as small data URLs. Kept apart from the chat so they survive clearing it. */
 export type Avatars = { self?: string; other?: string };

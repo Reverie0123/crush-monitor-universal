@@ -1,0 +1,205 @@
+// The online demo's sample chats: three weeks of a talking stage that warms up,
+// goes on one date, then cools off. Fictional. The same story in both languages.
+
+type Line = [date: string, time: string, who: "me" | "them", text: string];
+
+const EN: Line[] = [
+  [
+    "2026-08-24",
+    "21:02",
+    "them",
+    "just survived my first week of the new semester 😮‍💨",
+  ],
+  ["2026-08-24", "21:03", "me", "congrats!! how's the new lab"],
+  [
+    "2026-08-24",
+    "21:05",
+    "them",
+    "chaotic but fun. my advisor already gave me three papers to read lol",
+  ],
+  ["2026-08-24", "21:06", "me", "three?? in week one??"],
+  ["2026-08-24", "21:06", "them", "welcome to grad school 🙃"],
+  [
+    "2026-08-24",
+    "21:08",
+    "me",
+    "ok you deserve a proper dinner this weekend then",
+  ],
+  ["2026-08-24", "21:10", "them", "haha maybe! depends on how fast I read"],
+  [
+    "2026-08-27",
+    "22:15",
+    "them",
+    "ok I finished paper #2 and I understood maybe half of it",
+  ],
+  ["2026-08-27", "22:16", "me", "half is a passing grade"],
+  ["2026-08-27", "22:16", "them", "LOL"],
+  ["2026-08-27", "22:17", "them", "what are you up to"],
+  [
+    "2026-08-27",
+    "22:18",
+    "me",
+    "pretending to work, actually watching cooking videos",
+  ],
+  ["2026-08-27", "22:19", "them", "send me the good ones"],
+  [
+    "2026-08-27",
+    "22:21",
+    "me",
+    "this guy makes noodles from scratch in 10 minutes",
+  ],
+  ["2026-08-27", "22:24", "them", "ok that's hypnotic"],
+  ["2026-08-31", "21:03", "them", "Finally turned in the lab report 😭"],
+  ["2026-08-31", "21:05", "me", "Congrats! How late did you stay up"],
+  ["2026-08-31", "21:05", "them", "Past 2am. I'm dead"],
+  [
+    "2026-08-31",
+    "21:06",
+    "me",
+    "Go to bed early tonight, no scrolling till 2am again",
+  ],
+  [
+    "2026-08-31",
+    "21:08",
+    "them",
+    "hahaha you got me, I'm literally scrolling right now",
+  ],
+  [
+    "2026-08-31",
+    "21:14",
+    "them",
+    "Next time you're on my campus, dinner's on me",
+  ],
+  ["2026-08-31", "21:15", "me", "deal, I'm holding you to that"],
+  ["2026-08-31", "21:16", "them", "🤝"],
+  [
+    "2026-09-03",
+    "22:40",
+    "them",
+    "Got called out by my advisor at group meeting today. kinda annoyed",
+  ],
+  ["2026-09-03", "22:41", "me", "ugh, what happened"],
+  [
+    "2026-09-03",
+    "22:44",
+    "them",
+    "my results didn't replicate and he made a whole thing of it in front of everyone",
+  ],
+  [
+    "2026-09-03",
+    "22:45",
+    "me",
+    "that's rough. doing it in front of everyone wasn't fair",
+  ],
+  ["2026-09-03", "22:46", "me", "want to vent on a call?"],
+  [
+    "2026-09-03",
+    "22:50",
+    "them",
+    "it's ok, typing helps. thanks for asking though",
+  ],
+  ["2026-09-03", "22:51", "them", "you're kind of good at this"],
+  [
+    "2026-09-06",
+    "20:30",
+    "me",
+    "free this saturday? there's a photo exhibit near your campus",
+  ],
+  ["2026-09-07", "18:02", "them", "Saturday afternoon works"],
+  ["2026-09-07", "18:03", "me", "perfect, 2pm at the main gate?"],
+  ["2026-09-07", "18:05", "them", "see you there 😊"],
+  ["2026-09-12", "21:40", "me", "Saturday was so fun, we should do that again"],
+  ["2026-09-12", "22:31", "them", "haha yeah"],
+  ["2026-09-12", "22:32", "me", "that dumpling place was the best part"],
+  [
+    "2026-09-13",
+    "09:12",
+    "them",
+    "busy week coming up, sorry if I'm slow to reply",
+  ],
+  ["2026-09-13", "09:30", "me", "no worries, good luck with it"],
+  [
+    "2026-09-14",
+    "19:20",
+    "me",
+    "Did you eat yet? That noodle place near you is open late",
+  ],
+  ["2026-09-14", "19:59", "them", "Not yet. Maybe later"],
+  ["2026-09-14", "20:01", "me", "Ok, no worries"],
+];
+
+const ZH: Line[] = [
+  ["2026-08-24", "21:02", "them", "新学期第一周终于熬过去了😮‍💨"],
+  ["2026-08-24", "21:03", "me", "恭喜！新实验室怎么样"],
+  [
+    "2026-08-24",
+    "21:05",
+    "them",
+    "有点乱但还挺好玩 老师已经丢给我三篇论文了哈哈",
+  ],
+  ["2026-08-24", "21:06", "me", "三篇？？第一周？？"],
+  ["2026-08-24", "21:06", "them", "欢迎来到研究生生活🙃"],
+  ["2026-08-24", "21:08", "me", "那周末必须好好吃一顿补补"],
+  ["2026-08-24", "21:10", "them", "哈哈看情况 看我读得多快"],
+  ["2026-08-27", "22:15", "them", "第二篇读完了 大概看懂了一半"],
+  ["2026-08-27", "22:16", "me", "一半就算及格了"],
+  ["2026-08-27", "22:16", "them", "哈哈哈哈"],
+  ["2026-08-27", "22:17", "them", "你在干嘛"],
+  ["2026-08-27", "22:18", "me", "假装在工作 其实在看做饭视频"],
+  ["2026-08-27", "22:19", "them", "好看的发我"],
+  ["2026-08-27", "22:21", "me", "这个人十分钟手擀一碗面"],
+  ["2026-08-27", "22:24", "them", "好解压啊"],
+  ["2026-08-31", "21:03", "them", "今天终于把实验报告交了😭"],
+  ["2026-08-31", "21:05", "me", "恭喜！熬到几点"],
+  ["2026-08-31", "21:05", "them", "两点多 人已经没了"],
+  ["2026-08-31", "21:06", "me", "那今天早点睡 别又刷手机到半夜"],
+  ["2026-08-31", "21:08", "them", "哈哈哈被你说中了 我现在就在刷"],
+  ["2026-08-31", "21:14", "them", "下回你来我们学校 我请你吃"],
+  ["2026-08-31", "21:15", "me", "说定了 我记着了"],
+  ["2026-08-31", "21:16", "them", "🤝"],
+  ["2026-09-03", "22:40", "them", "今天组会被老师说了 有点烦"],
+  ["2026-09-03", "22:41", "me", "怎么了"],
+  ["2026-09-03", "22:44", "them", "结果复现不出来 他当着所有人的面说了半天"],
+  ["2026-09-03", "22:45", "me", "那确实难受 当着大家的面说太不给面子了"],
+  ["2026-09-03", "22:46", "me", "要不要打个电话吐槽一下"],
+  ["2026-09-03", "22:50", "them", "不用啦 打字就好多了 谢谢你问"],
+  ["2026-09-03", "22:51", "them", "你还挺会安慰人的"],
+  ["2026-09-06", "20:30", "me", "这周六有空吗 你们学校附近有个摄影展"],
+  ["2026-09-07", "18:02", "them", "周六下午可以"],
+  ["2026-09-07", "18:03", "me", "好 两点校门口见？"],
+  ["2026-09-07", "18:05", "them", "到时候见😊"],
+  ["2026-09-12", "21:40", "me", "今天好开心 下次再一起去吧"],
+  ["2026-09-12", "22:31", "them", "哈哈好呀"],
+  ["2026-09-12", "22:32", "me", "那家饺子是最大亮点"],
+  ["2026-09-13", "09:12", "them", "下周要忙起来了 回消息慢的话别介意"],
+  ["2026-09-13", "09:30", "me", "没事 加油"],
+  ["2026-09-14", "19:20", "me", "吃饭了吗 你们那边那家面馆开到很晚"],
+  ["2026-09-14", "19:59", "them", "还没 再说吧"],
+  ["2026-09-14", "20:01", "me", "好吧"],
+];
+
+/** In the export-tool format: "name date time", the text, a blank line. */
+function exportText(lines: Line[], me: string, them: string) {
+  return lines
+    .map(
+      ([date, time, who, text]) =>
+        `${who === "me" ? me : them} ${date} ${time}:00\n${text}\n`,
+    )
+    .join("\n");
+}
+
+export const DEMO_CHATS = {
+  en: {
+    locale: "en-US",
+    me: "Me",
+    text: exportText(EN, "Me", "Lily"),
+    // Replies that get "How could I say this better?" rewrites in the demo.
+    rewrite: ["Ok, no worries", "Saturday was so fun, we should do that again"],
+  },
+  zh: {
+    locale: "zh-CN",
+    me: "我",
+    text: exportText(ZH, "我", "小雨"),
+    rewrite: ["好吧", "今天好开心 下次再一起去吧"],
+  },
+} as const;

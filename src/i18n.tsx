@@ -63,6 +63,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     } catch {
       // Not remembering the choice is harmless.
     }
+    // The demo's sample chat was analyzed in one language; load the other one.
+    if (__DEMO__) location.reload();
     setLangState(l);
   };
   return <I18n.Provider value={{ lang, t, setLang }}>{children}</I18n.Provider>;

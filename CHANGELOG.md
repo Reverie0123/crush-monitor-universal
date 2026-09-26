@@ -1,5 +1,19 @@
 # 更新记录
 
+## v2.5.0（2026-09-26）：在线演示、美元单价、Mac 启动脚本
+
+### 新增
+
+- **在线演示**：https://reverie0123.github.io/crush-monitor-universal/ 。不用安装、不用 Key，打开就是一段用真实模型分析好的示例聊天（英文界面是 Lily，中文界面是小雨），可以点开看情绪意图、判断依据、走势、关键时刻和改写建议。分析新聊天会提示下载到本机运行。推送到 main 后由 GitHub Actions 自动部署；正常版本里不含演示代码。
+- **美元单价**：「模型与接口」的单价处可以在人民币和美元之间切换，所有金额（预计花费、已花费、单次上限、账单校准）跟着换符号；已填的单价和上限按 1 美元 = 7.2 元换算。第一次打开英文界面默认美元，中文界面默认人民币；已经存过单价或上限的用户保持人民币。
+- **Mac / Linux 启动脚本**：Mac 双击 `启动.command`，Linux 运行 `./start.sh`。和 `启动.bat` 一样：首次运行和更新后自动安装依赖、读取 `.env` 里的端口、构建后打开网页。
+
+### English summary
+
+- Online demo at https://reverie0123.github.io/crush-monitor-universal/ : no install, no key, a sample chat analyzed in advance by a real model.
+- Prices and costs can be shown in US dollars; the English interface starts in USD. Saved prices and limits convert at 1 USD = 7.2 CNY.
+- Start scripts for Mac (double-click `启动.command`) and Linux (`./start.sh`).
+
 ## v2.4.1（2026-09-26）：英文界面显示修复
 
 ### 修复

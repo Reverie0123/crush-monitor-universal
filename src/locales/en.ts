@@ -21,10 +21,10 @@ export const en: Messages = {
   colon: ": ",
   quote: (s) => `“${s}”`,
   points: (n) => `${n} pts`,
-  yuan: (v) =>
-    v < 0.01 ? "under ¥0.01" : `~¥${v < 1 ? v.toFixed(2) : v.toFixed(1)}`,
-  yuanShort: (v) =>
-    v < 0.01 ? "<¥0.01" : `¥${v < 1 ? v.toFixed(2) : v.toFixed(1)}`,
+  yuan: (v, s = "¥") =>
+    v < 0.01 ? `under ${s}0.01` : `~${s}${v < 1 ? v.toFixed(2) : v.toFixed(1)}`,
+  yuanShort: (v, s = "¥") =>
+    v < 0.01 ? `<${s}0.01` : `${s}${v < 1 ? v.toFixed(2) : v.toFixed(1)}`,
   tokens: (n) =>
     n >= 1e6
       ? `${(n / 1e6).toFixed(1)}M`
@@ -367,7 +367,8 @@ export const en: Messages = {
       `The chat is over the per-request limit (${limit}); sending in batches`,
     batchRange: (from, to, count) =>
       `: analyzing messages ${num(from)}–${num(to)} of ${num(count)}`,
-    capped: (budget) => `Reached the per-run limit of ¥${budget}; paused.`,
+    capped: (budget, s = "¥") =>
+      `Reached the per-run limit of ${s}${budget}; paused.`,
     incomplete: "Analysis incomplete. ",
     stale: "Showing results from older rules. ",
     langChanged:
@@ -550,8 +551,12 @@ export const en: Messages = {
     cache: "Cache results: re-analyzing the same content costs nothing",
     jevPrices: "Jev prices",
     prices: "Prices",
-    pricesUnit:
-      " (¥ per million tokens, for estimates; check your provider's site)",
+    pricesUnit: (s) =>
+      ` (${s} per million tokens, for estimates; check your provider's site)`,
+    currency: "Currency",
+    currencies: { CNY: "¥ CNY", USD: "$ USD" },
+    currencyNote:
+      "Switching converts the prices and limit you've entered at 1 USD = 7.2 CNY.",
     priceKinds: { input: "Input", cached: "Cache hit", output: "Output" },
     resetPrices: "Reset",
     saveTest: "Save & test connection",
@@ -572,16 +577,16 @@ export const en: Messages = {
     capTitle: "Per-run cost limit",
     capNote:
       "A run pauses automatically once it costs more than this; finished work is kept, and you can continue after raising it. Leave blank for no limit.",
-    capLabel: "Limit (¥)",
+    capLabel: (s) => `Limit (${s})`,
     capPlaceholder: "e.g. 5",
-    capSave: (budget) =>
-      budget ? `Save (currently ¥${budget})` : "Save limit",
+    capSave: (budget, s = "¥") =>
+      budget ? `Save (currently ${s}${budget})` : "Save limit",
     calibrateTitle: "Calibrate to your bill",
     calibrateNote:
       "Prices can be changed under “Model & API” in settings; DeepSeek / OpenAI and Jev each keep their own prices and calibration. Providers charge differently at peak and off-peak times, so estimates are never exact; if you switched models, this chat's total is priced at the current model's rates.",
     calibrated: (f) => ` Calibrated to your bill (×${f}).`,
     learned: (f) => ` Estimates are also corrected from recent runs (×${f}).`,
-    billLabel: "What did the runs above actually cost, in ¥?",
+    billLabel: (s) => `What did the runs above actually cost, in ${s}?`,
     billPlaceholder: "e.g. 8.3",
     calibrate: "Calibrate",
     uncalibrate: "Remove calibration",
@@ -670,7 +675,12 @@ export const en: Messages = {
     title: (name) => `Chat analysis report · ${name}`,
     file: "chat-analysis-report",
   },
+  demo: {
+    banner: "Online demo · a sample chat, analyzed in advance",
+    getApp: "Get the app →",
+  },
   errors: {
+    demo: "This is the online demo: it shows a sample chat that was analyzed in advance. To analyze your own chats, download the app and run it on your computer (free and open source).",
     analysisFailed: "Analysis failed",
     revisionMismatch: "Analysis version mismatch — refresh and try again",
     contextMismatch: "Analysis context mismatch — try again",

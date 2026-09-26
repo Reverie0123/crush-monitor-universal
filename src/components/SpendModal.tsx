@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { Modal } from "./ui";
-import { calibrate, formatTokens, formatYuan, savePrices } from "../cost";
+import {
+  calibrate,
+  currencySymbol,
+  formatMoney,
+  formatTokens,
+  savePrices,
+} from "../cost";
 import type { UsageTotal } from "../useAnalysis";
 import type { Spend } from "../useSpend";
 import { useT } from "../i18n";
@@ -20,12 +26,13 @@ export function SpendModal({
   );
   const t = useT();
   const { prices } = spend;
+  const s = currencySymbol();
   const rows: [string, string][] = [
     [t.spend.requests, t.spend.requestsValue(usage.requests)],
     [t.spend.input, formatTokens(usage.input)],
     [t.spend.cached, formatTokens(usage.cached)],
     [t.spend.output, formatTokens(usage.output)],
-    [t.spend.estimated, formatYuan(spend.spent)],
+    [t.spend.estimated, formatMoney(spend.spent)],
   ];
   return (
     <Modal title={t.spend.title} close={close}>
@@ -40,7 +47,7 @@ export function SpendModal({
       <h3>{t.spend.capTitle}</h3>
       <p>{t.spend.capNote}</p>
       <label className="field">
-        {t.spend.capLabel}
+        {t.spend.capLabel(s)}
         <input
           type="number"
           min={0}
@@ -56,7 +63,7 @@ export function SpendModal({
           spend.setBudget(Number(budget) > 0 ? Number(budget) : null)
         }
       >
-        {t.spend.capSave(spend.budget)}
+        {t.spend.capSave(spend.budget, s)}
       </button>
       <h3>{t.spend.calibrateTitle}</h3>
       <p>
@@ -66,7 +73,7 @@ export function SpendModal({
           t.spend.learned(spend.estimateFactor.toFixed(2))}
       </p>
       <label className="field">
-        {t.spend.billLabel}
+        {t.spend.billLabel(s)}
         <input
           type="number"
           min={0}
