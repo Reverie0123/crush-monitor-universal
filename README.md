@@ -2,7 +2,7 @@
 
 简体中文 · [English](README.en.md)
 
-> **关于本版本**：这是基于 [Crush 好感监控器](https://github.com/FerryCorleone/crush-monitor) 的改编版，原作者是 [**FerryCorleone**](https://github.com/FerryCorleone)。原版使用 TypeSafe 的 Jev 模型；因为 TypeSafe 暂停了新用户注册，本版本默认改为调用 DeepSeek / OpenAI 等兼容接口，也可以在设置里切回原版的 Jev（通过 OpenRouter、Vercel 或 TypeSafe 调用），并在此基础上做了一些完善。本改编版经原作者同意后发布，沿用原来的 MIT 许可证，版权声明见 [LICENSE](LICENSE)。
+> **关于本版本**：这是基于 [Crush 好感监控器](https://github.com/FerryCorleone/crush-monitor) 的改编版，原作者是 [**FerryCorleone**](https://github.com/FerryCorleone)。原版使用 TypeSafe 的 Jev 模型。本版本保留对原版 Jev 的支持（通过 OpenRouter、Vercel 或 TypeSafe 调用），同时新增 DeepSeek / OpenAI 等兼容接口（默认使用 DeepSeek），并在此基础上做了一些完善。本改编版经原作者同意后发布，沿用原来的 MIT 许可证，版权声明见 [LICENSE](LICENSE)。
 
 一个用大模型分析你和 Crush 或对象聊天的小工具。帮你读懂一点对方的情绪和想法，也看看自己的回复哪里没表达好、可以怎么调整。
 
