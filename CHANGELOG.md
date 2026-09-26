@@ -1,5 +1,15 @@
 # 更新记录
 
+## v2.4.1（2026-09-26）：英文界面显示修复
+
+### 修复
+
+- 英文界面的「情绪与意图」弹窗里，Disappointed、Impatient、Surprised 等较长的情绪名会压到旁边的概率条上；现在英文界面单独加宽了这一列，中文界面不变。
+
+### English summary
+
+- Fixed: in the English interface, longer emotion names (Disappointed, Impatient, Surprised) overlapped the probability bars in the emotion & intent dialog.
+
 ## v2.4.0（2026-09-26）：打磨与省钱
 
 ### 改进

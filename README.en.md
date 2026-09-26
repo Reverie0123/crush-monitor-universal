@@ -93,7 +93,7 @@ Only two-person text conversations are supported—not images, audio, ZIP/HTML e
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) (in Chinese; releases from v2.4.0 end with an English summary). Current version v2.4.0: polish for English use (plurals, number formats, translated system notices) and a re-run offer after switching language.
+See [CHANGELOG.md](CHANGELOG.md) (in Chinese; releases from v2.4.0 end with an English summary). Current version v2.4.1: fixes long emotion names overlapping the bars in the English interface (v2.4.0 brought English polish and a re-run offer after switching language).
 
 ## Development
 

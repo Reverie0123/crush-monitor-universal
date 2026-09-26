@@ -677,6 +677,11 @@ blockquote {
 .emotion-distribution > div > span {
   width: 42px;
 }
+/* English emotion names are longer than the two-character Chinese ones. */
+html[lang="en"] .emotion-distribution > div > span {
+  width: 84px;
+  flex: none;
+}
 .emotion-distribution b {
   width: 36px;
   text-align: right;
