@@ -677,6 +677,7 @@ export const en: Messages = {
   },
   demo: {
     banner: "Online demo · a sample chat, analyzed in advance",
+    forFun: "Just for fun, not mind reading",
     getApp: "Get the app →",
   },
   errors: {

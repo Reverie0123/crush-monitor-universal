@@ -147,7 +147,9 @@ export default function App() {
     }
   }
   useEffect(() => {
-    if (!accepted) setDetail("disclaimer");
+    // The demo can't analyze anything, so visitors see it straight away;
+    // its banner links to the disclaimer instead.
+    if (!accepted && !DEMO) setDetail("disclaimer");
   }, []);
 
   const [avatars, setAvatars] = useState<Avatars>({});
@@ -502,7 +504,11 @@ export default function App() {
     <main className="app">
       {DEMO && (
         <p className="demo-banner">
-          {t.demo.banner}{" "}
+          {t.demo.banner} ·{" "}
+          <button onClick={() => setDetail("disclaimer")}>
+            {t.demo.forFun}
+          </button>{" "}
+          ·{" "}
           <a href={REPO_URL} target="_blank" rel="noopener">
             {t.demo.getApp}
           </a>

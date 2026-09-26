@@ -1689,6 +1689,13 @@ button.spend {
   color: #fff;
   font-weight: 600;
 }
+.demo-banner button {
+  display: inline;
+  padding: 0;
+  color: #fff;
+  font-size: inherit;
+  text-decoration: underline dotted;
+}
 @media (max-width: 550px) {
   .app:has(.demo-banner) {
     padding-top: 24px;

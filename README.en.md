@@ -24,7 +24,7 @@ AI doesn't know your relationship or what happens outside the chat. Take the res
 - **Report export:** download a one-page HTML report.
 - **Timing and quotes:** reply gaps, late-night chats and WeChat quoted replies are understood; images, stickers, recalls and pats are shown as context only.
 - **Ten relationship types:** from "just met" to "cold war" and "exes", each with its own reading guidance.
-- **Two model choices:** DeepSeek / OpenAI by default, or the original Jev (via OpenRouter, Vercel or TypeSafe); keys and prices are kept separately for each.
+- **Two model choices:** the original Jev (via OpenRouter, Vercel or TypeSafe), or DeepSeek / OpenAI (the default); keys and prices are kept separately for each.
 - **Your own key, cost shown:** runs locally with your own API credits and shows the estimated spend.
 - **Privacy masking:** phone numbers, emails, ID and card numbers, and words you choose are replaced with placeholders before sending.
 - **Analysis levels:** "Quick" reads only the overall score and trend (usually a few cents), "Standard" adds emotions and intentions for each of their messages, "Full" also grades your replies; you can also analyze just the last 7 or 30 days.

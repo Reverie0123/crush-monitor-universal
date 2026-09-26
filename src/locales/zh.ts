@@ -593,6 +593,7 @@ export const zh = {
   },
   demo: {
     banner: "在线演示 · 示例聊天已提前分析好",
+    forFun: "仅供娱乐参考",
     getApp: "下载使用 →",
   },
   errors: {
