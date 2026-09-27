@@ -111,13 +111,9 @@ export async function analyze(
 ): Promise<AnalysisResponse> {
   const start = performance.now();
   const payload = buildRequest(input);
-  // Chat models answer all questions in one generation, and Jev retries stuck
-  // calls, so allow a generous deadline.
-  const deadline = AbortSignal.timeout(180000);
-  const result = await systemOne(
-    payload,
-    signal ? AbortSignal.any([signal, deadline]) : deadline,
-  );
+  // No overall deadline: each upstream attempt has its own, counted from when
+  // it is sent, so waiting for a turn under the request limits never times out.
+  const result = await systemOne(payload, signal);
   const a = result.answers;
   const output: AnalysisResponse = {
     revision: input.revision,

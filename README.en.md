@@ -101,7 +101,7 @@ Only two-person text conversations are supported—not images, audio, ZIP/HTML e
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) (in Chinese; releases from v2.4.0 end with an English summary). Current version v2.5.0: an online demo, prices in US dollars, and start scripts for Mac and Linux.
+See [CHANGELOG.md](CHANGELOG.md) (in Chinese; releases from v2.4.0 end with an English summary). Current version v2.6.0: set how many requests run at once and a per-minute limit; waiting in line no longer times out.
 
 ## Development
 

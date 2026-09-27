@@ -1,5 +1,20 @@
 # 更新记录
 
+## v2.6.0（2026-09-27）：自定义请求并发和速率
+
+### 新增
+
+- **同时请求数、每分钟请求上限**（#1）：「模型与接口」里可以直接设置同时发给模型服务的请求数（1–64，默认 24，原来只能改 `.env` 的 `LLM_PARALLEL`）和每分钟最多发出的请求数（默认不限，对应 `.env` 的 `LLM_RPM`）。设了每分钟上限后请求会均匀错开，比如 60 就是每秒 1 个，同时满足按秒和按分钟限流的服务商。改完立即生效，正在排队的请求也按新设置走。
+
+### 修复
+
+- 请求排队等待的时间不再算进超时。以前整次分析共用一个 180 秒的期限，请求多、服务商慢或者限速调得低时，排在后面的请求还没发出去就被判成「网络超时」；现在每次请求从真正发出时才开始计时（聊天模型 150 秒，Jev 每次尝试 55 秒，回复建议 60 秒）。
+
+### English summary
+
+- New in Model & API settings: requests at once (1–64, default 24) and requests per minute (no limit by default). With a per-minute limit, requests are spaced evenly, so per-second limits are respected too. Changes apply immediately. (#1)
+- Fixed: time spent waiting in line no longer counts toward the timeout, so slow or rate-limited providers no longer cause false "network timeout" errors. Each request's clock now starts when it is actually sent.
+
 ## v2.5.0（2026-09-26）：在线演示、美元单价、Mac 启动脚本
 
 ### 新增

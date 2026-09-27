@@ -42,6 +42,8 @@ export function demoFetch(path: string, init: RequestInit = {}) {
       mask: true,
       maskWords: "",
       cache: true,
+      parallel: 24,
+      rpm: 0,
     });
   return json({ error: messages().errors.demo, code: "demo" }, 503);
 }

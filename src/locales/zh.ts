@@ -467,6 +467,11 @@ export const zh = {
     maskWords: "额外打码的词（真名、学校、地址等，用逗号分隔）",
     maskWordsPlaceholder: "例如：张三，XX中学，幸福小区",
     cache: "缓存分析结果：同样的内容再分析时不重复花钱",
+    parallel: "同时请求数（1–64，默认 24）",
+    rpm: "每分钟请求上限",
+    rpmNone: "不限",
+    limitsNote:
+      "服务商报限流（429）或并发额度较低时，把这两项调小。设了每分钟上限后请求会均匀错开，60 即每秒 1 个；排队等待不算超时。",
     jevPrices: "Jev 的单价",
     prices: "单价",
     pricesUnit: (s: string) =>

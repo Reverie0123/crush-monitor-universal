@@ -30,6 +30,10 @@ export type PublicConfig = {
   mask: boolean;
   maskWords: string;
   cache: boolean;
+  /** Upstream requests in flight at once. */
+  parallel: number;
+  /** Upstream requests started per minute; 0 is no limit. */
+  rpm: number;
 };
 
 const PRESETS = [
@@ -148,6 +152,8 @@ export function ModelSettings({
           mask: form!.mask,
           maskWords: form!.maskWords,
           cache: form!.cache,
+          parallel: Math.min(64, Math.max(1, Math.round(form!.parallel) || 24)),
+          rpm: Math.min(6000, Math.max(0, Math.round(form!.rpm) || 0)),
         }),
       });
       const body = await r.json();
@@ -384,6 +390,32 @@ export function ModelSettings({
         />
         {t.model.cache}
       </label>
+      <div className="field-row">
+        <label className="field">
+          {t.model.parallel}
+          <input
+            type="number"
+            min={1}
+            max={64}
+            step={1}
+            value={form.parallel || ""}
+            onChange={(e) => set({ parallel: Number(e.target.value) })}
+          />
+        </label>
+        <label className="field">
+          {t.model.rpm}
+          <input
+            type="number"
+            min={0}
+            max={6000}
+            step={1}
+            value={form.rpm || ""}
+            placeholder={t.model.rpmNone}
+            onChange={(e) => set({ rpm: Number(e.target.value) })}
+          />
+        </label>
+      </div>
+      <p className="settings-note">{t.model.limitsNote}</p>
       <fieldset className="price-row">
         <legend>
           {jev ? t.model.jevPrices : t.model.prices}

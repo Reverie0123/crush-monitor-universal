@@ -549,6 +549,11 @@ export const en: Messages = {
       "Extra words to mask (real names, schools, addresses — comma-separated)",
     maskWordsPlaceholder: "e.g. Alex Chen, Riverside High, Oak Street",
     cache: "Cache results: re-analyzing the same content costs nothing",
+    parallel: "Requests at once (1–64, default 24)",
+    rpm: "Requests per minute",
+    rpmNone: "No limit",
+    limitsNote:
+      "Lower these if your provider rate-limits you (429) or allows little concurrency. With a per-minute limit, requests are spaced evenly (60 = one per second); waiting in line never counts as a timeout.",
     jevPrices: "Jev prices",
     prices: "Prices",
     pricesUnit: (s) =>

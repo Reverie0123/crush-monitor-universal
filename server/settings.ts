@@ -37,6 +37,8 @@ export function publicConfig() {
     mask: c.mask,
     maskWords: c.maskWords.join("，"),
     cache: c.cache,
+    parallel: c.parallel,
+    rpm: c.rpm,
   };
 }
 
@@ -62,6 +64,9 @@ export const settingsSchema = z.object({
   mask: z.boolean().optional(),
   maskWords: z.string().max(2000).optional(),
   cache: z.boolean().optional(),
+  parallel: z.number().int().min(1).max(64).optional(),
+  /** 0 is no limit. */
+  rpm: z.number().int().min(0).max(6000).optional(),
 });
 
 function quote(v: string) {
@@ -98,6 +103,8 @@ export async function updateConfig(patch: z.infer<typeof settingsSchema>) {
       .filter(Boolean)
       .join(",");
   if (patch.cache !== undefined) values.LLM_CACHE = patch.cache ? "on" : "off";
+  if (patch.parallel !== undefined) values.LLM_PARALLEL = String(patch.parallel);
+  if (patch.rpm !== undefined) values.LLM_RPM = patch.rpm ? String(patch.rpm) : "";
 
   const text = await readFile(ENV_PATH, "utf8").catch(() => "");
   const lines = text

@@ -530,7 +530,9 @@ export function useAnalysis() {
   async function sendLines(
     jobs: AnalysisRequest[],
     tag: (l: LineResult) => LineResult = (l) => l,
-    signal: AbortSignal = AbortSignal.timeout(180000),
+    // Only a safety net: the server times out each upstream call itself, and a
+    // low request limit can make jobs wait their turn for a while.
+    signal: AbortSignal = AbortSignal.timeout(600000),
     onEach: () => void = () => {},
   ) {
     const revision = rev.current;
@@ -590,7 +592,7 @@ export function useAnalysis() {
       await sendLines(
         jobs,
         undefined,
-        AbortSignal.any([ctrl.signal, AbortSignal.timeout(180000)]),
+        ctrl.signal,
         () => setProgress((p) => ({ ...p, done: p.done + 1 })),
       );
     } catch (e) {

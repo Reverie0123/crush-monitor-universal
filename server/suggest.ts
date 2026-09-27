@@ -84,6 +84,9 @@ export async function suggest(
         { role: "user", content: user },
       ],
       signal,
+      true,
+      // A minute per attempt, counted from when it is sent.
+      60000,
     );
     usage.input_tokens += reply.usage.input_tokens;
     usage.output_tokens += reply.usage.output_tokens;

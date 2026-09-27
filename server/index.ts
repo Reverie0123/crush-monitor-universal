@@ -225,12 +225,7 @@ app.post("/api/suggest", async (req, res) => {
     if (!res.writableEnded) controller.abort();
   });
   try {
-    res.json(
-      await suggest(
-        valid.data,
-        AbortSignal.any([controller.signal, AbortSignal.timeout(60000)]),
-      ),
-    );
+    res.json(await suggest(valid.data, controller.signal));
   } catch (error) {
     fail(res, error, controller.signal.aborted);
   }

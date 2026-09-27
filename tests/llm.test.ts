@@ -4,6 +4,7 @@ import { choice, noul, score } from "../shared/questions";
 import { clip } from "../shared/rules";
 import {
   Masker,
+  callModel,
   jevAnswer,
   parseJSON,
   systemOne,
@@ -729,4 +730,75 @@ test("Jev 请求不带输出语言：切语言不改变请求，也不让缓存�
     process.env.LLM_PROVIDER = "openai";
     delete process.env.OPENROUTER_API_KEY;
   }
+});
+
+test("同时发给模型服务的请求不超过设置的上限", async () => {
+  env();
+  process.env.LLM_PARALLEL = "2";
+  let inFlight = 0;
+  let peak = 0;
+  globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+    inFlight++;
+    peak = Math.max(peak, inFlight);
+    await new Promise((r) => setTimeout(r, 20));
+    inFlight--;
+    const body = JSON.parse(String(init!.body));
+    const { questions } = JSON.parse(body.messages.at(-1).content);
+    return new Response(
+      JSON.stringify({
+        model: "fake",
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                answers: Object.fromEntries(
+                  Object.keys(questions).map((k) => [k, { r: "理由", yes: 0.5 }]),
+                ),
+              }),
+            },
+          },
+        ],
+      }),
+    );
+  }) as typeof fetch;
+  const questions = Object.fromEntries(
+    Array.from({ length: 60 }, (_, i) => [`q${i}`, noul("问题")]),
+  );
+  try {
+    await systemOne({ state: { messages: [] }, questions });
+    assert.equal(peak, 2);
+  } finally {
+    delete process.env.LLM_PARALLEL;
+  }
+});
+
+test("设了每分钟上限后，请求均匀错开发出；排队不算进单次请求的超时", async () => {
+  env();
+  process.env.LLM_RPM = "600"; // one every 100 ms
+  const starts: number[] = [];
+  fakeModel(() => {
+    starts.push(Date.now());
+    return JSON.stringify({ ok: true });
+  });
+  try {
+    await Promise.all(
+      Array.from({ length: 4 }, () =>
+        // A 50 ms attempt limit: the later calls wait longer than that for
+        // their turn, and still succeed.
+        callModel([{ role: "user", content: "{}" }], undefined, true, 50),
+      ),
+    );
+    starts.sort((a, b) => a - b);
+    for (let i = 1; i < starts.length; i++)
+      assert.ok(starts[i] - starts[i - 1] >= 90, `gap ${starts[i] - starts[i - 1]}`);
+  } finally {
+    delete process.env.LLM_RPM;
+  }
+});
+
+test("并发和每分钟上限只接受合理的整数", () => {
+  assert.equal(settingsSchema.safeParse({ parallel: 0 }).success, false);
+  assert.equal(settingsSchema.safeParse({ parallel: 1.5 }).success, false);
+  assert.equal(settingsSchema.safeParse({ rpm: -1 }).success, false);
+  assert.equal(settingsSchema.safeParse({ parallel: 4, rpm: 0 }).success, true);
 });

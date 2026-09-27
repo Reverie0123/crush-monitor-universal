@@ -101,7 +101,16 @@ export function config() {
       .map((w) => w.trim())
       .filter((w) => w.length >= 2),
     cache: env.LLM_CACHE?.trim() !== "off",
+    /** Upstream calls in flight at once. */
+    parallel: whole(env.LLM_PARALLEL, 24, 1, 64),
+    /** Upstream calls started per minute; 0 is no limit. */
+    rpm: whole(env.LLM_RPM, 0, 0, 6000),
   };
+}
+
+function whole(raw: string | undefined, fallback: number, min: number, max: number) {
+  const n = Number.parseInt(raw?.trim() ?? "", 10);
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
 }
 
 export class LLMError extends Error {
@@ -331,14 +340,50 @@ const add = (a: Usage, b: Usage): Usage => ({
   cached_tokens: a.cached_tokens + b.cached_tokens,
 });
 
+// Upstream calls are spaced evenly when a per-minute limit is set, so a
+// provider's per-second limit is respected too. Each call books the next free
+// time, in order.
+let nextStart = 0;
+export async function throttle(signal?: AbortSignal) {
+  const { rpm } = config();
+  if (!rpm) return;
+  const now = Date.now();
+  const at = Math.max(now, nextStart);
+  nextStart = at + 60000 / rpm;
+  if (at > now) await wait(at - now, signal);
+}
+
+function wait(ms: number, signal?: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", abort);
+      resolve();
+    }, ms);
+    function abort() {
+      clearTimeout(timer);
+      reject(signal!.reason);
+    }
+    if (signal?.aborted) abort();
+    else signal?.addEventListener("abort", abort, { once: true });
+  });
+}
+
+// Chat models answer a whole batch in one generation; reasoning models take a
+// while. The clock starts when the request is sent, not while it waits its turn.
+const CHAT_ATTEMPT_MS = 150_000;
+
 /** One chat completion in JSON mode. Retries are the caller's business. */
 export async function callModel(
   messages: { role: "system" | "user"; content: string }[],
   signal?: AbortSignal,
   json = true,
+  timeoutMs = CHAT_ATTEMPT_MS,
 ) {
   const c = config();
   if (!c.openaiKey) throw new LLMError("OPENAI_API_KEY missing", 401);
+  await throttle(signal);
+  const limit = AbortSignal.timeout(timeoutMs);
+  const attempt = signal ? AbortSignal.any([signal, limit]) : limit;
   let response: Response;
   try {
     response = await fetch(`${c.baseURL}/chat/completions`, {
@@ -354,10 +399,10 @@ export async function callModel(
         ...(json ? { response_format: { type: "json_object" } } : {}),
         messages,
       }),
-      signal,
+      signal: attempt,
     });
   } catch (error) {
-    if (signal?.aborted) throw error;
+    if (attempt.aborted) throw error;
     throw new LLMError("network error", 502);
   }
   if (!response.ok) {
@@ -552,8 +597,8 @@ export function jevAnswer(q: Question, raw: unknown): Answer {
   };
 }
 
-// One Jev call rarely takes long; a stuck one is abandoned and retried. Three
-// attempts plus the waits between them fit inside the 180 s analysis deadline.
+// One Jev call rarely takes long; a stuck one is abandoned and retried, at most
+// three attempts in all. Each attempt's clock starts when it is sent.
 const JEV_ATTEMPT_MS = 55_000;
 
 /** One native Jev request, retried up to twice on rate limits, server errors and timeouts. */
@@ -564,6 +609,7 @@ export async function callJev(
   const { jev } = config();
   if (!jev.apiKey) throw new LLMError(`${jev.keyEnv} missing`, 401);
   for (let attempt = 0; ; attempt++) {
+    await throttle(signal);
     let response: Response;
     try {
       response = await fetch(jev.endpoint, {
@@ -731,18 +777,21 @@ async function robust(
 }
 
 const CHUNK = 9;
-// Upstream calls in flight at once.
-const MAX_PARALLEL = Number(process.env.LLM_PARALLEL) || 24;
+// Upstream calls in flight at once. The limit is read on every call, so a
+// change in the settings applies to the calls still waiting.
 let running = 0;
 const waiting: (() => void)[] = [];
 async function withSlot<T>(fn: () => Promise<T>) {
-  if (running >= MAX_PARALLEL) await new Promise<void>((r) => waiting.push(r));
+  while (running >= config().parallel)
+    await new Promise<void>((r) => waiting.push(r));
   running++;
   try {
     return await fn();
   } finally {
     running--;
-    waiting.shift()?.();
+    // Wake as many as now fit; the rest go back to waiting.
+    for (let free = config().parallel - running; free > 0 && waiting.length; free--)
+      waiting.shift()!();
   }
 }
 
