@@ -1,8 +1,10 @@
 import { API_VERSION } from "../shared/types";
-import { DEMO, demoFetch } from "./demo";
+import { DEMO, WEB, demoFetch } from "./demo";
 
 /** fetch() for this app's API, tagged with the page version so a stale server can say so. */
 export function apiFetch(path: string, init: RequestInit = {}) {
+  // The online version answers in the page itself; the demo only declines.
+  if (WEB) return import("./web").then((m) => m.webFetch(path, init));
   if (DEMO) return Promise.resolve(demoFetch(path, init));
   const headers = new Headers(init.headers);
   headers.set("X-Api-Version", API_VERSION);

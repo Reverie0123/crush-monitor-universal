@@ -1,11 +1,13 @@
-// The online demo: a static build (GitHub Pages) with no server and no key.
-// It opens on a sample chat that was analyzed ahead of time with a real model
-// (src/demo/*.json, made by scripts/make-demo.ts); anything that would call
-// the model says it is a demo instead.
+// The static builds (GitHub Pages) have no server. Both open on a sample chat
+// that was analyzed ahead of time with a real model (src/demo/*.json, made by
+// scripts/make-demo.ts). The demo declines anything that would call a model;
+// the online version (WEB) runs the analysis in the browser with the visitor's
+// own key (src/web.ts).
 import type { SavedConversation } from "./storage";
 import { currentLang, messages } from "./i18n";
 
 export const DEMO = __DEMO__;
+export const WEB = __WEB__;
 export const REPO_URL =
   "https://github.com/Reverie0123/crush-monitor-universal";
 

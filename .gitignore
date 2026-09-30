@@ -1,6 +1,7 @@
 node_modules/
 dist/
-dist-demo/
+dist-demo
+dist-web/
 .env
 .env.*
 !.env.example

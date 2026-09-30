@@ -1,5 +1,21 @@
 # 更新记录
 
+## v2.7.0（2026-09-30）：在线版
+
+### 新增
+
+- **在线版**：https://reverie0123.github.io/crush-monitor-universal/ 不再只是演示，可以直接分析自己的聊天。在设置里填上自己的 API Key，分析请求从浏览器直接发给你选的模型服务（DeepSeek、任意 OpenAI 兼容接口，或 Jev 的 OpenRouter / Vercel 平台），不经过任何中间服务器。聊天记录、分析结果、Key、设置和结果缓存都只存在这个浏览器里。不用装 Node，不用下载。本地版照旧，想把一切放在自己电脑上的用户继续下载运行。
+- 在线版和本地版共用同一份分析代码：模型调用、分批、并发和每分钟上限、重试、隐私打码、结果缓存都原样在浏览器里运行。
+
+### 说明
+
+- Jev 的 TypeSafe 直连不接受网页请求，在线版选 Jev 时请用 OpenRouter 或 Vercel。
+- 界面测试新增在线版：静态页面配本地假模型服务，验证请求直接从页面发出、不经过服务器。
+
+### English summary
+
+- The online version now analyzes your own chats: paste your API key in the settings and requests go straight from the browser to the model service you chose (DeepSeek, any OpenAI-compatible API, or Jev via OpenRouter / Vercel), with no server in between. Chats, results, settings and the reply cache stay in your browser. Nothing to install; the local version is unchanged. For Jev, TypeSafe's own endpoint does not accept browser requests.
+
 ## v2.6.0（2026-09-27）：自定义请求并发和速率
 
 ### 新增

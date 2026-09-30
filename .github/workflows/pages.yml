@@ -1,6 +1,7 @@
-# Publishes the online demo (npm run build:demo) to GitHub Pages on every push
-# to main. It is a static build: no server, no API key, a pre-analyzed sample.
-name: Demo
+# Publishes the online version (npm run build:web) to GitHub Pages on every
+# push to main. It is a static build: no server; it opens on a pre-analyzed
+# sample and analyzes the visitor's own chats in the browser with their key.
+name: Web
 
 on:
   push:
@@ -29,9 +30,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run build:demo
+      - run: npm run build:web
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist-demo
+          path: dist-web
       - id: deployment
         uses: actions/deploy-pages@v4

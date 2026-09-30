@@ -109,6 +109,15 @@ function jevProblem(body: any) {
 }
 
 createServer((req, res) => {
+  // The online version calls from the page itself, so the browser asks first.
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+  res.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+  if (req.method === "OPTIONS") {
+    res.statusCode = 204;
+    res.end();
+    return;
+  }
   if (req.url === "/health") {
     res.end("ok");
     return;

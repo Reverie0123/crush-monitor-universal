@@ -3,16 +3,9 @@
 // same request shape (state + typed questions) and give the same answer shape
 // (choice / score / noul with probabilities), so the rules layer is unchanged.
 import type { EntryType, Question, Questions } from "../shared/questions";
-import { createHash } from "node:crypto";
-import {
-  mkdir,
-  readFile,
-  readdir,
-  rm,
-  stat,
-  writeFile,
-} from "node:fs/promises";
-import { join } from "node:path";
+import { sha256Hex } from "../shared/hash";
+import { cacheGet, cachePut } from "./cache";
+import { env as settings } from "./env";
 import { SYSTEM } from "../shared/prompt";
 import { SHARED_MESSAGE, compactQuestion } from "../shared/request";
 import { pickTemperature } from "./temperature";
@@ -49,7 +42,7 @@ export const JEV_PLATFORM_KEYS = Object.keys(JEV_PLATFORMS) as [
 
 /** Read on every call so the settings page can change them without a restart. */
 export function config() {
-  const env = process.env;
+  const env = settings();
   const temperature = Number.parseFloat(env.OPENAI_TEMPERATURE ?? "");
   const openaiKey = env.OPENAI_API_KEY?.trim() ?? "";
   const openaiModel = env.OPENAI_MODEL?.trim() || "deepseek-chat";
@@ -262,68 +255,6 @@ export class Masker {
   get count() {
     return this.forward.size;
   }
-}
-
-// ---------- Local response cache ----------
-
-const CACHE_DIR = join(process.cwd(), ".cache", "llm");
-// Cached replies contain chat text, so they expire and the folder stays bounded.
-const CACHE_TTL_MS = 30 * 24 * 3600 * 1000;
-const CACHE_MAX_BYTES = 200 * 1024 * 1024;
-async function cacheGet(key: string) {
-  const file = join(CACHE_DIR, `${key}.json`);
-  try {
-    if (Date.now() - (await stat(file)).mtimeMs > CACHE_TTL_MS)
-      return undefined;
-    return JSON.parse(await readFile(file, "utf8")) as ParsedReply;
-  } catch {
-    return undefined;
-  }
-}
-/** Deletes expired entries, then the oldest ones while the folder is over its cap. */
-export async function pruneCache() {
-  let names: string[];
-  try {
-    names = await readdir(CACHE_DIR);
-  } catch {
-    return;
-  }
-  const files = (
-    await Promise.all(
-      names.map(async (name) => {
-        const path = join(CACHE_DIR, name);
-        try {
-          const s = await stat(path);
-          return { path, size: s.size, mtime: s.mtimeMs };
-        } catch {
-          return null;
-        }
-      }),
-    )
-  )
-    .filter((f): f is NonNullable<typeof f> => !!f)
-    .sort((a, b) => a.mtime - b.mtime);
-  let total = files.reduce((n, f) => n + f.size, 0);
-  for (const f of files) {
-    if (Date.now() - f.mtime <= CACHE_TTL_MS && total <= CACHE_MAX_BYTES) break;
-    try {
-      await rm(f.path, { force: true });
-    } catch {
-      // Locked by a concurrent write (Windows EBUSY/EPERM): try again next hour.
-    }
-    total -= f.size;
-  }
-}
-async function cachePut(key: string, value: ParsedReply) {
-  try {
-    await mkdir(CACHE_DIR, { recursive: true });
-    await writeFile(join(CACHE_DIR, `${key}.json`), JSON.stringify(value));
-  } catch {
-    // A cache that cannot be written only costs money, never correctness.
-  }
-}
-export async function clearCache() {
-  await rm(CACHE_DIR, { recursive: true, force: true });
 }
 
 // ---------- Transport ----------
@@ -696,18 +627,14 @@ async function jevSystemOne(
     state: masker.deep(state as EntryType),
     questions: masker.deep(request.questions),
   };
-  const key = createHash("sha256")
-    .update(
-      JSON.stringify([
+  const key = await sha256Hex(JSON.stringify([
         "jev",
         c.jev.platform,
         c.jev.endpoint,
         c.jev.model,
         body,
-      ]),
-    )
-    .digest("hex");
-  const hit = c.cache ? await cacheGet(key) : undefined;
+      ]));
+  const hit = c.cache ? await cacheGet<ParsedReply>(key) : undefined;
   const reply = hit
     ? { ...hit, usage: ZERO }
     : await withSlot(() => callJev(body, signal));
@@ -821,19 +748,15 @@ async function ask(
     { role: "user" as const, content: stateMessage },
     { role: "user" as const, content: questions },
   ];
-  const key = createHash("sha256")
-    .update(
-      JSON.stringify([
+  const key = await sha256Hex(JSON.stringify([
         c.openaiModel,
         c.baseURL,
         c.effort,
         c.temperature,
         messages,
-      ]),
-    )
-    .digest("hex");
+      ]));
   if (c.cache) {
-    const hit = await cacheGet(key);
+    const hit = await cacheGet<ParsedReply>(key);
     if (hit) return { ...hit, usage: ZERO };
   }
   const retry = (error: LLMError) => {

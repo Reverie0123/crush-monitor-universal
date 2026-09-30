@@ -552,6 +552,8 @@ export const en: Messages = {
     parallel: "Requests at once (1–64, default 24)",
     rpm: "Requests per minute",
     rpmNone: "No limit",
+    webNote:
+      "Online version: your key is kept in this browser only, and requests go straight from the browser to the model service, with no server in between. For Jev, use OpenRouter or Vercel; TypeSafe's own endpoint does not accept browser requests.",
     limitsNote:
       "Lower these if your provider rate-limits you (429) or allows little concurrency. With a per-minute limit, requests are spaced evenly (60 = one per second); waiting in line never counts as a timeout.",
     jevPrices: "Jev prices",
@@ -682,8 +684,10 @@ export const en: Messages = {
   },
   demo: {
     banner: "Online demo · a sample chat, analyzed in advance",
+    webBanner: "Online version · opens on a sample chat, analyzed in advance · your chats stay in this browser",
     forFun: "Just for fun, not mind reading",
     getApp: "Get the app →",
+    getLocal: "Run it locally →",
   },
   errors: {
     demo: "This is the online demo: it shows a sample chat that was analyzed in advance. To analyze your own chats, download the app and run it on your computer (free and open source).",

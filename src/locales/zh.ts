@@ -470,6 +470,8 @@ export const zh = {
     parallel: "同时请求数（1–64，默认 24）",
     rpm: "每分钟请求上限",
     rpmNone: "不限",
+    webNote:
+      "在线版：Key 只保存在这个浏览器里，分析请求直接从浏览器发给模型服务，不经过任何中间服务器。选 Jev 时请用 OpenRouter 或 Vercel，TypeSafe 直连不接受网页请求。",
     limitsNote:
       "服务商报限流（429）或并发额度较低时，把这两项调小。设了每分钟上限后请求会均匀错开，60 即每秒 1 个；排队等待不算超时。",
     jevPrices: "Jev 的单价",
@@ -598,8 +600,10 @@ export const zh = {
   },
   demo: {
     banner: "在线演示 · 示例聊天已提前分析好",
+    webBanner: "在线版 · 打开是一段分析好的示例聊天 · 你的聊天只存在这个浏览器里",
     forFun: "仅供娱乐参考",
     getApp: "下载使用 →",
+    getLocal: "本地版 →",
   },
   errors: {
     demo: "这是在线演示，展示的是一段已经分析好的示例聊天。要分析自己的聊天，请下载到本机运行（免费开源）。",

@@ -56,7 +56,7 @@ import {
   type Parsed,
   type Relation,
 } from "../shared/types";
-import { DEMO, REPO_URL } from "./demo";
+import { DEMO, REPO_URL, WEB } from "./demo";
 
 const OVERVIEW_KINDS = ["overview", "action", "performance"];
 // Views opened by name; any other `detail` value is a message id.
@@ -148,8 +148,8 @@ export default function App() {
   }
   useEffect(() => {
     // The demo can't analyze anything, so visitors see it straight away;
-    // its banner links to the disclaimer instead.
-    if (!accepted && !DEMO) setDetail("disclaimer");
+    // its banner links to the disclaimer instead. The online version can.
+    if (!accepted && (!DEMO || WEB)) setDetail("disclaimer");
   }, []);
 
   const [avatars, setAvatars] = useState<Avatars>({});
@@ -504,13 +504,13 @@ export default function App() {
     <main className="app">
       {DEMO && (
         <p className="demo-banner">
-          {t.demo.banner} ·{" "}
+          {WEB ? t.demo.webBanner : t.demo.banner} ·{" "}
           <button onClick={() => setDetail("disclaimer")}>
             {t.demo.forFun}
           </button>{" "}
           ·{" "}
           <a href={REPO_URL} target="_blank" rel="noopener">
-            {t.demo.getApp}
+            {WEB ? t.demo.getLocal : t.demo.getApp}
           </a>
         </p>
       )}

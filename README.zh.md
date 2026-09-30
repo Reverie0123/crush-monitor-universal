@@ -4,9 +4,9 @@
 
 [English](README.md) · 简体中文
 
-[![在线演示](https://img.shields.io/badge/在线演示-不用安装_不用_Key-e0728a?style=for-the-badge)](https://reverie0123.github.io/crush-monitor-universal/) [![Product Hunt](https://img.shields.io/badge/Product_Hunt-Crush_Monitor-DA552F?style=for-the-badge&logo=producthunt&logoColor=white)](https://www.producthunt.com/products/crush-monitor)
+[![在线使用](https://img.shields.io/badge/在线使用-不用安装-e0728a?style=for-the-badge)](https://reverie0123.github.io/crush-monitor-universal/) [![Product Hunt](https://img.shields.io/badge/Product_Hunt-Crush_Monitor-DA552F?style=for-the-badge&logo=producthunt&logoColor=white)](https://www.producthunt.com/products/crush-monitor)
 
-在自己电脑上运行 · 用自己的模型 Key · 聊天保存在浏览器里，不上传到服务器
+不用安装 · 用自己的模型 Key · 聊天只存在你的浏览器里，不上传到服务器
 
 ![内置示例聊天，用 DeepSeek 分析后的界面](docs/screenshot-zh.png)
 
@@ -17,7 +17,7 @@
 - **关键时刻**：邀约、关心、表白、拒绝，汇总成一条时间线
 - **回复评级**：自己的回复按 SSS 到 D 打分，并给出两种更好的说法
 
-可以先打开 **[在线演示](https://reverie0123.github.io/crush-monitor-universal/)**：一段已经用真实模型分析好的示例聊天，不用安装，随便点。要分析自己的聊天，按下面的[本地运行](#本地运行)在自己电脑上跑。
+**[在浏览器里打开](https://reverie0123.github.io/crush-monitor-universal/)**：打开就是一段用真实模型分析好的示例聊天，可以随便点。要分析自己的聊天，在设置里填上 API Key 就行，Key 只存在你的浏览器里，分析请求从页面直接发给模型服务。想把一切都放在自己电脑上，就按[本地运行](#本地运行)下载运行，代码是同一份。
 
 **聊天记录去了哪**：保存在你的浏览器里。只有分析需要的内容会发给你配置的模型服务（DeepSeek、任意 OpenAI 兼容接口，或原版的 Jev），发送前会先把手机号、邮箱、身份证号、银行卡号和你指定的词打码。分析一段聊天，用自己的 Key 一般只要几毛钱。
 
@@ -45,7 +45,7 @@ AI 不知道你们现实中怎么相处，也不了解聊天之外的故事。�
 
 ## 实现上
 
-不只是套一层提示词。每个问题都要求模型给出结构化回答（先写理由，再给概率分布），再由规则层换算成标签和分数。请求分小批并行发出，同时请求数和每分钟上限都能设置；返回格式异常会重试，或拆开重问；提示词的排列方式能让服务商复用前缀缓存。另外还有：三类模型服务（DeepSeek、任意 OpenAI 兼容接口、Jev）、本地结果缓存、花费预估和上限、发送前的隐私打码，以及 93 个单元测试和 13 个浏览器测试。细节见下文和 `server/llm.ts`。
+不只是套一层提示词。同一份分析代码既在本地版的服务端运行，也在在线版的浏览器里运行。每个问题都要求模型给出结构化回答（先写理由，再给概率分布），再由规则层换算成标签和分数。请求分小批并行发出，同时请求数和每分钟上限都能设置；返回格式异常会重试，或拆开重问；提示词的排列方式能让服务商复用前缀缓存。另外还有：三类模型服务（DeepSeek、任意 OpenAI 兼容接口、Jev）、本地结果缓存、花费预估和上限、发送前的隐私打码，以及 93 个单元测试和 14 个浏览器测试。细节见下文和 `server/llm.ts`。
 
 ## 模型
 
@@ -117,6 +117,7 @@ iMessage 等软件复制后若只有正文，没有发送人，请先补上 `Ale
 - 模型回复会缓存在项目的 `.cache/` 目录，同样的内容再分析时不重复花钱；设置里可以清除缓存或关闭缓存。缓存里有聊天内容，不要上传。
 - 聊天和分析保存在当前浏览器的本机数据库，刷新后恢复；设置中的“清空聊天，重新开始”会删除这些记录。
 - 分析所需原文（打码后）会发送至你配置的模型服务，模型用量由自己的账号承担；本机保存不等于离线分析。
+- **在线版**：设置、Key 和结果缓存也都存在浏览器里（localStorage 和 IndexedDB），分析请求从页面直接发给模型服务。选 Jev 时请用 OpenRouter 或 Vercel，TypeSafe 直连不接受网页请求。
 - 导入后不会自动分析：底部会先显示「待分析多少条、预计花费多少」，点「开始分析」才会调用模型。预估按实际要发出的请求逐个计算，默认单价是 DeepSeek V4 Flash 低谷价（高峰时段约翻倍）。点「已花费」可以看明细，并输入实际账单金额一键校准，之后的预估和统计都按校准后的比例计算。DeepSeek / OpenAI 和 Jev 各有一套单价和校准；Jev 的预计花费只作参考。金额默认按人民币显示，在「模型与接口」的单价处可以切换成美元（已填的单价和上限按 1 美元 = 7.2 元换算）。实际费用以服务商账单为准。
 - 切换模型后，已经分析过的消息保留原来的结果，之后的新消息和整体判断用新模型。分析进行中不能保存模型设置。
 - 首次使用会显示免责声明与风险提示，确认后才能分析；之后可在设置里随时查看。
@@ -124,7 +125,7 @@ iMessage 等软件复制后若只有正文，没有发送人，请先补上 `Ale
 
 ## 更新记录
 
-各版本的更新内容见 [CHANGELOG.md](CHANGELOG.md)。当前版本 v2.6.0：可以自定义同时请求数和每分钟请求上限，排队不再误报超时。
+各版本的更新内容见 [CHANGELOG.md](CHANGELOG.md)。当前版本 v2.7.0：在线版可以直接在浏览器里分析自己的聊天，不用安装。
 
 ## 和原版的主要差异
 
@@ -143,7 +144,8 @@ npm run dev        # 开发模式：http://127.0.0.1:5178/
 npm test           # 单元测试，不调用模型
 npm run test:e2e   # 界面测试：用 Edge 打开真实页面，DeepSeek 和 Jev 都换成本地假服务，不花钱
 npm run check:live # 真实模型调用检查，用 .env 里选的模型，使用自己的 API 额度
-npm run build:demo # 打包在线演示（静态网页，推送到 main 后自动部署到 GitHub Pages）
+npm run build:web  # 打包在线版（静态网页，推送到 main 后自动部署到 GitHub Pages）
+npm run build:demo # 同一个页面但关掉分析，只做演示
 npx tsx scripts/make-demo.ts http://127.0.0.1:3178  # 用真实模型重新生成演示里的示例分析，花几毛钱
 npm run release    # 发布 package.json 里的版本：检查、打标签、推送、建 GitHub Release（CHANGELOG 里要有对应一节）
 ```

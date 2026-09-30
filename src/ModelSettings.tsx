@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "./api";
+import { WEB } from "./demo";
 import {
   convertPrices,
   currencySymbol,
@@ -278,6 +279,7 @@ export function ModelSettings({
 
   return (
     <div className="model-settings">
+      {WEB && <p className="settings-note">{t.model.webNote}</p>}
       <div
         className="preset-row"
         role="group"

@@ -28,6 +28,7 @@ import {
   type Period,
 } from "../shared/types";
 import type { SavedConversation, Trend } from "./storage";
+import { sha256Hex as sha256 } from "../shared/hash";
 import { overLimit, requestLimits } from "../shared/limits";
 import { TextError, currentLang, errorOf, errorText, type Text } from "./i18n";
 type Progress = {
@@ -75,15 +76,6 @@ const pause = (ms: number, signal: AbortSignal) =>
     signal.addEventListener("abort", abort, { once: true });
     if (signal.aborted) abort();
   });
-async function sha256(text: string) {
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(text),
-  );
-  return Array.from(new Uint8Array(digest), (b) =>
-    b.toString(16).padStart(2, "0"),
-  ).join("");
-}
 
 export function useAnalysis() {
   const [overview, setOverview] = useState<Overview | null>(null),

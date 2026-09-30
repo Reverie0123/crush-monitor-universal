@@ -1,7 +1,6 @@
-// Model settings editable from the web page. Values live in .env so they
-// survive restarts, and are applied to process.env so they take effect at once.
-import { readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+// Model settings editable from the web page. They are applied at once and
+// kept for the next start (see ./env: .env on the server, localStorage in the
+// online version).
 import { z } from "zod";
 import {
   JEV_PLATFORMS,
@@ -12,8 +11,7 @@ import {
   parseJSON,
 } from "./llm";
 import { errorBody } from "./errors";
-
-const ENV_PATH = join(process.cwd(), ".env");
+import { setEnv } from "./env";
 
 export function publicConfig() {
   const c = config();
@@ -69,12 +67,6 @@ export const settingsSchema = z.object({
   rpm: z.number().int().min(0).max(6000).optional(),
 });
 
-function quote(v: string) {
-  // Never let a value span lines; single quotes can't be escaped in .env, so drop them.
-  const clean = v.replace(/[\r\n]+/g, " ").replace(/'/g, "");
-  return /[\s#"`]/.test(clean) ? `'${clean}'` : clean;
-}
-
 export async function updateConfig(patch: z.infer<typeof settingsSchema>) {
   const values: Record<string, string> = {};
   if (patch.provider !== undefined) values.LLM_PROVIDER = patch.provider;
@@ -106,18 +98,7 @@ export async function updateConfig(patch: z.infer<typeof settingsSchema>) {
   if (patch.parallel !== undefined) values.LLM_PARALLEL = String(patch.parallel);
   if (patch.rpm !== undefined) values.LLM_RPM = patch.rpm ? String(patch.rpm) : "";
 
-  const text = await readFile(ENV_PATH, "utf8").catch(() => "");
-  const lines = text
-    ? text.replace(/\r\n/g, "\n").replace(/\n$/, "").split("\n")
-    : [];
-  for (const [key, value] of Object.entries(values)) {
-    const line = `${key}=${quote(value)}`;
-    const at = lines.findIndex((l) => new RegExp(`^\\s*${key}\\s*=`).test(l));
-    if (at >= 0) lines[at] = line;
-    else lines.push(line);
-    process.env[key] = value;
-  }
-  await writeFile(ENV_PATH, lines.join("\n") + "\n", "utf8");
+  await setEnv(values);
   return publicConfig();
 }
 

@@ -3,9 +3,10 @@ import express from "express";
 import { fileURLToPath } from "node:url";
 import { join, dirname } from "node:path";
 import { analyze, requestSchema } from "./analysis";
-import { clearCache, config, pruneCache } from "./llm";
+import { clearCache, pruneCache } from "./cache";
+import { config } from "./llm";
 import { API_VERSION } from "../shared/types";
-import { errorBody, type ErrorCode } from "./errors";
+import { errorBody, errorCode } from "./errors";
 import { suggest, suggestSchema } from "./suggest";
 import {
   publicConfig,
@@ -114,17 +115,6 @@ app.delete("/api/cache", async (_req, res) => {
   res.json({ ok: true });
 });
 
-// Upstream statuses that have their own advice. The same statuses mean
-// different fixes on Jev, whose settings have no model name or address.
-const HTTP_CODES = [400, 401, 402, 403, 404, 413, 422, 429, 529];
-const JEV_CODES = [400, 401, 402, 403, 404, 502];
-function errorCode(status: number, detail?: string, jev = false): ErrorCode {
-  if (jev && JEV_CODES.includes(status)) return `jev${status}` as ErrorCode;
-  if (HTTP_CODES.includes(status)) return `http${status}` as ErrorCode;
-  return status === 502 && detail === "network error"
-    ? "network"
-    : "unfinished";
-}
 function fail(
   res: express.Response,
   error: unknown,

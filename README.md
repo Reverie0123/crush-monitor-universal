@@ -4,9 +4,9 @@
 
 English · [简体中文](README.zh.md)
 
-[![Try the live demo](https://img.shields.io/badge/Live_demo-no_install,_no_key-e0728a?style=for-the-badge)](https://reverie0123.github.io/crush-monitor-universal/) [![Crush Monitor on Product Hunt](https://img.shields.io/badge/Product_Hunt-Crush_Monitor-DA552F?style=for-the-badge&logo=producthunt&logoColor=white)](https://www.producthunt.com/products/crush-monitor)
+[![Use it in your browser](https://img.shields.io/badge/Use_it_online-nothing_to_install-e0728a?style=for-the-badge)](https://reverie0123.github.io/crush-monitor-universal/) [![Crush Monitor on Product Hunt](https://img.shields.io/badge/Product_Hunt-Crush_Monitor-DA552F?style=for-the-badge&logo=producthunt&logoColor=white)](https://www.producthunt.com/products/crush-monitor)
 
-Runs on your computer · Bring your own model key · Chats are saved in your browser, not on a server
+Nothing to install · Bring your own model key · Chats stay in your browser, not on a server
 
 ![The built-in sample chat analyzed with DeepSeek](docs/screenshot-en.png)
 
@@ -17,7 +17,7 @@ Paste a two-person text chat from WeChat, WhatsApp, QQ or iMessage, and every me
 - **Key moments:** invitations, care, confessions and refusals on one timeline
 - **Your replies, graded** from SSS to D, with two better ways to say them
 
-**[Open the live demo](https://reverie0123.github.io/crush-monitor-universal/)** first: it's a sample chat already analyzed by a real model, so you can click around without installing anything. To analyze your own chats, [run it locally](#run-locally).
+**[Open it in your browser](https://reverie0123.github.io/crush-monitor-universal/)**: it starts on a sample chat already analyzed by a real model, so you can click around. To analyze your own chats, paste your API key in the settings; it stays in your browser, and requests go straight from the page to the model service. Prefer to keep everything on your own machine? [Run it locally](#run-locally): same app, same code.
 
 **Where your chat goes:** it's saved in your browser. Only the text needed for analysis is sent, to the model service you set up (DeepSeek, any OpenAI-compatible API, or the original Jev), after phone numbers, emails, ID and card numbers and words you choose are masked. A typical chat costs a few cents on your own key.
 
@@ -48,7 +48,7 @@ In English mode everything is in English, including what the model writes: its r
 
 ## Under the hood
 
-Not a prompt wrapper. Each question gets a structured answer (a written reason, then a probability distribution) that a rules layer turns into labels and scores. Requests go out in parallel batches with configurable concurrency and per-minute limits; malformed replies are retried, or split and asked again; prompts are laid out so providers can reuse their prefix cache. Plus: three kinds of model service (DeepSeek, any OpenAI-compatible API, Jev), a local reply cache, cost estimates and spending limits, privacy masking before anything is sent, 93 unit tests and 13 browser tests. Details below and in `server/llm.ts`.
+Not a prompt wrapper. The same analysis code runs on the local server and, in the online version, in the browser itself. Each question gets a structured answer (a written reason, then a probability distribution) that a rules layer turns into labels and scores. Requests go out in parallel batches with configurable concurrency and per-minute limits; malformed replies are retried, or split and asked again; prompts are laid out so providers can reuse their prefix cache. Plus: three kinds of model service (DeepSeek, any OpenAI-compatible API, Jev), a local reply cache, cost estimates and spending limits, privacy masking before anything is sent, 93 unit tests and 14 browser tests. Details below and in `server/llm.ts`.
 
 ## Model
 
@@ -114,11 +114,12 @@ Only two-person text conversations are supported—not images, audio, ZIP/HTML e
 - After switching models, lines already analyzed keep their results; new lines and the overview use the new model. Model settings can't be saved while an analysis is running.
 - Model replies are cached in `.cache/` so re-analyzing the same content is free; you can clear or disable this in settings. The cache contains chat text—never commit it.
 - Chats and results stay in this browser's local database. Text needed for analysis (after masking) is sent to your configured model service, billed to your account.
+- **Online version:** the settings, your key and the reply cache are kept in the browser too (localStorage and IndexedDB), and requests go from the page straight to the model service. For Jev, choose OpenRouter or Vercel; TypeSafe's own endpoint does not accept browser requests.
 - Never commit `.env`, `.cache/` or private conversations.
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) (in Chinese; releases from v2.4.0 end with an English summary). Current version v2.6.0: set how many requests run at once and a per-minute limit; waiting in line no longer times out.
+See [CHANGELOG.md](CHANGELOG.md) (in Chinese; releases from v2.4.0 end with an English summary). Current version v2.7.0: the online version analyzes your own chats in the browser, nothing to install.
 
 ## Development
 
@@ -129,7 +130,8 @@ npm run dev        # http://127.0.0.1:5178/
 npm test           # local tests; no model calls
 npm run test:e2e   # UI tests in Edge with local stand-ins for DeepSeek and Jev; free
 npm run check:live # real model check with the model chosen in .env; uses your API credits
-npm run build:demo # the online demo: a static build, deployed to GitHub Pages on every push to main
+npm run build:web  # the online version: a static build, deployed to GitHub Pages on every push to main
+npm run build:demo # the same page with analysis switched off (demo only)
 npx tsx scripts/make-demo.ts http://127.0.0.1:3178  # redo the demo's sample analysis with a real model (a few cents)
 npm run release    # tag and publish the version in package.json (needs a matching CHANGELOG section)
 ```

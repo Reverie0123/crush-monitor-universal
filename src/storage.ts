@@ -9,7 +9,7 @@ import type {
 import type { MemoryEvent } from "../shared/memory";
 import type { UsageTotal } from "./useAnalysis";
 import type { Scope } from "../shared/plan";
-import { DEMO, demoConversation } from "./demo";
+import { DEMO, WEB, demoConversation } from "./demo";
 export type Trend = { at: string; value: number | null; count: number };
 export type SavedConversation = {
   schema: 1;
@@ -36,10 +36,13 @@ let connection: Promise<IDBDatabase> | undefined;
 function db() {
   return (connection ??= new Promise<IDBDatabase>((resolve, reject) => {
     // The demo keeps its own copy per language and version, so a visitor's
-    // edits never mix with the real app's data or an older sample.
-    const name = DEMO
-      ? `crush-monitor-demo-${currentLang()}-${__APP_VERSION__}`
-      : "crush-monitor";
+    // edits never mix with the real app's data or an older sample. The online
+    // version keeps real chats, so its store outlives versions and languages.
+    const name = WEB
+      ? "crush-monitor-web"
+      : DEMO
+        ? `crush-monitor-demo-${currentLang()}-${__APP_VERSION__}`
+        : "crush-monitor";
     const req = indexedDB.open(name, 1);
     req.onupgradeneeded = () => req.result.createObjectStore("workspace");
     req.onsuccess = () => resolve(req.result);

@@ -2,7 +2,7 @@ import { EVENT_KINDS } from "../shared/memory";
 import { AFFINITY_DIMENSIONS, composeAffinity } from "../shared/affinity";
 import { MAX_MESSAGES, MAX_TEXT_CHARS } from "../shared/limits";
 import { systemOne } from "./llm";
-import { createHash } from "node:crypto";
+import { sha256Hex } from "../shared/hash";
 import { z } from "zod";
 import {
   RUBRIC,
@@ -117,9 +117,7 @@ export async function analyze(
   const a = result.answers;
   const output: AnalysisResponse = {
     revision: input.revision,
-    contextHash: createHash("sha256")
-      .update(requestContextKey(input))
-      .digest("hex"),
+    contextHash: await sha256Hex(requestContextKey(input)),
     model: result.model,
     rubricVersion: RUBRIC,
     usage: result.usage,

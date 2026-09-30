@@ -18,7 +18,8 @@ const PINNED = {
 // Uses the Edge that ships with Windows, so no browser download is needed.
 const APP = 3190,
   MOCK = 3191,
-  JEV_APP = 3192;
+  JEV_APP = 3192,
+  WEB = 3193;
 export default defineConfig({
   testDir: "tests/e2e",
   timeout: 60_000,
@@ -55,6 +56,13 @@ export default defineConfig({
         OPENROUTER_API_KEY: "",
         JEV_ENDPOINT: `http://127.0.0.1:${MOCK}/jev`,
       },
+    },
+    // The online version: the static build on its own, no app server.
+    {
+      command: `npx vite build --mode web --base ./ --outDir dist-web --logLevel warn && npx vite preview --outDir dist-web --host 127.0.0.1 --port ${WEB} --strictPort`,
+      url: `http://127.0.0.1:${WEB}/`,
+      timeout: 120_000,
+      reuseExistingServer: false,
     },
     // The same page in Jev-only mode (reuses the build above).
     {
