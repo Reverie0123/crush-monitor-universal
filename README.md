@@ -1,50 +1,75 @@
-# Crush 好感监控器（通用版）
+# Crush Monitor
 
-简体中文 · [English](README.en.md)
+**Paste a chat with your crush. See the signals you missed.**
 
-> **关于本版本**：这是基于 [Crush 好感监控器](https://github.com/FerryCorleone/crush-monitor) 的改编版，原作者是 [**FerryCorleone**](https://github.com/FerryCorleone)。原版使用 TypeSafe 的 Jev 模型。本版本保留对原版 Jev 的支持（通过 OpenRouter、Vercel 或 TypeSafe 调用），同时新增 DeepSeek / OpenAI 等兼容接口（默认使用 DeepSeek），并在此基础上做了一些完善。本改编版经原作者同意后发布，沿用原来的 MIT 许可证，版权声明见 [LICENSE](LICENSE)。
+English · [简体中文](README.zh.md)
 
-一个用大模型分析你和 Crush 或对象聊天的小工具。帮你读懂一点对方的情绪和想法，也看看自己的回复哪里没表达好、可以怎么调整。
+[![Try the live demo](https://img.shields.io/badge/Live_demo-no_install,_no_key-e0728a?style=for-the-badge)](https://reverie0123.github.io/crush-monitor-universal/) [![Crush Monitor on Product Hunt](https://img.shields.io/badge/Product_Hunt-Crush_Monitor-DA552F?style=for-the-badge&logo=producthunt&logoColor=white)](https://www.producthunt.com/products/crush-monitor)
 
-不过，AI 不知道你们现实中怎么相处，也不了解聊天之外的故事。分析结果就当图一乐、做个参考。怎么理解对方、怎么表达自己，最后还是得靠自己的感受和真诚。
+Runs on your computer · Bring your own model key · Chats are saved in your browser, not on a server
 
-![内置示例聊天，用 DeepSeek 分析后的界面](docs/screenshot-zh.png)
+![The built-in sample chat analyzed with DeepSeek](docs/screenshot-en.png)
 
-**[在线演示](https://reverie0123.github.io/crush-monitor-universal/)**：不用安装、不用 Key，打开就是一段已经用真实模型分析好的示例聊天，可以随便点开看。要分析自己的聊天，按下面「本地运行」在自己电脑上跑。
+Paste a two-person text chat from WeChat, WhatsApp, QQ or iMessage, and every message is read in context:
 
-## 特点
+- **Emotion and intent** for each of their messages, with the reason behind each call
+- **Relationship trend:** a weekly affection curve, with the turning points marked
+- **Key moments:** invitations, care, confessions and refusals on one timeline
+- **Your replies, graded** from SSS to D, with two better ways to say them
 
-- **微信风格界面**：还原聊天气泡，分析结果直接显示在消息下方。
-- **中英双语界面**：右上角「EN / 中」一键切换（设置里也可以），立即生效并会记住；第一次打开按浏览器语言决定。切到 English 后，模型写的判断依据、整体解读也会用英文；回复建议始终和原话用同一种语言。已有的分析保留原来的语言，切换后底部会提示可以用新语言重新分析。
-- **情绪与意图**：每句两行标签，从 12 类情绪、36 类意图（含学术讨论）中分别展示概率最高的三项。
-- **好感度与回复评级**：顶部显示好感信号评分，自己的回复按 SSS 到 D 分档，并给出下一步建议。
-- **两种模型可选**：原版的 Jev（经 OpenRouter、Vercel 或 TypeSafe 调用），或 DeepSeek / OpenAI（默认），两边的 Key 和单价分开保存。
-- **看得到判断依据**：每个标签、每个好感维度都附一句模型结合上下文写的理由，好感度还有一段整体解读（DeepSeek / OpenAI 模式；Jev 只给概率，不写理由）。
-- **关系走势**：按周给好感度打分，画成曲线，标出涨跌明显的转折点。
-- **关键时刻**：邀约、关心、表达心意、拒绝等事件汇总成时间线，点一下跳到聊天原处。
-- **回复建议**：对自己的任意一句回复，可以让模型给出两种更好的说法（Jev 模式下需选「Jev + DeepSeek / OpenAI」）。
-- **导出报告**：一键下载一页 HTML 分析报告。
-- **读懂节奏和引用**：自动换算回复间隔、深夜聊天、连发，识别微信的「引用」回复；图片、表情只作语境，不单独打分。
-- **本机运行，自带 Key**：无需服务器，用自己的 API 额度；界面上能看到大约花了多少钱。
-- **隐私打码**：发送前自动把手机号、邮箱、身份证号、银行卡号和你指定的词换成占位符。
-- **分析档位**：「快速」只看整体好感和走势（几毛钱）、「标准」加上对方每句的情绪意图、「完整」再给自己的回复打分；还可以只分析最近 7 天或 30 天。
-- **花费可控**：导入后先显示预计花费，手动开始；可设单次花费上限，超过自动暂停；分析中实时显示已花 / 预计和剩余时间。
-- **纠正判断**：觉得某句判断不对，可以写一句实际情况，让模型按你的说明重新判断这一句，以后重新分析也会带上。
-- **搜索与筛选**：按关键词搜聊天，或只看「我的低分回复」「对方负面情绪」等，点一下跳过去。
+**[Open the live demo](https://reverie0123.github.io/crush-monitor-universal/)** first: it's a sample chat already analyzed by a real model, so you can click around without installing anything. To analyze your own chats, [run it locally](#run-locally).
 
-## 模型
+**Where your chat goes:** it's saved in your browser. Only the text needed for analysis is sent, to the model service you set up (DeepSeek, any OpenAI-compatible API, or the original Jev), after phone numbers, emails, ID and card numbers and words you choose are masked. A typical chat costs a few cents on your own key.
 
-原版使用 TypeSafe 的 Jev 结构化判断模型。本版本改为调用 OpenAI 兼容的 Chat Completions 接口，默认 DeepSeek：`server/llm.ts` 让模型对每个问题先写理由、再输出概率分布，然后换算成和原版相同的选项、分数和置信度，上层规则基本不变。
+It's a second opinion, not mind reading. AI doesn't know your relationship or what happens outside the chat, and an honest conversation still beats any score.
 
-- [申请 API Key：DeepSeek 开放平台](https://platform.deepseek.com/api_keys)（国内可直接使用）
-- 也可以换成 OpenAI 或其他兼容服务，在网页设置里改接口地址和模型名即可。
-- 通用模型自己给出的概率没有经过 Jev 那样的专门校准，结果的精细程度可能不如原版。
+## All features
 
-**也可以继续用原版的 Jev**：在设置「模型与接口」里切到「Jev（原版模型）」，选调用平台（[OpenRouter](https://openrouter.ai/settings/keys)、Vercel AI Gateway 或 TypeSafe 官方）并填入该平台的 Key。Jev 直接给出校准过的概率，但不写判断理由。Jev 模式下可以选「仅 Jev」（没有回复建议），或「Jev + DeepSeek / OpenAI」（分析用 Jev，回复建议由 DeepSeek / OpenAI 来写）。Jev 一次最多读 500 条 / 12,000 字，更长的聊天会自动分批上传，底部会显示正在分析第几条到第几条。两边的 Key 分开保存，可以随时切换。
+- **WeChat-style conversation view:** analysis sits beneath each message.
+- **Emotions and intentions:** the top three probabilities from 12 emotion and 36 intention categories (including academic discussion).
+- **Affection score and reply grades:** a conversation-level score, SSS–D grades for your replies, and suggested next steps.
+- **Reasons you can read:** every label and score comes with a one-line, context-based explanation from the model, plus an overall reading.
+- **Relationship trend:** a weekly affection curve with turning points marked.
+- **Key moments:** invitations, care, confessions, refusals and similar events in one timeline; click to jump to the message.
+- **Reply suggestions:** ask for two better ways to phrase any of your own replies.
+- **Report export:** download a one-page HTML report.
+- **Timing and quotes:** reply gaps, late-night chats and WeChat quoted replies are understood; images, stickers, recalls and pats are shown as context only.
+- **Ten relationship types:** from "just met" to "cold war" and "exes", each with its own reading guidance.
+- **Two model choices:** the original Jev (via OpenRouter, Vercel or TypeSafe), or DeepSeek / OpenAI (the default); keys and prices are kept separately for each.
+- **Your own key, cost shown:** runs locally with your own API credits and shows the estimated spend.
+- **Privacy masking:** phone numbers, emails, ID and card numbers, and words you choose are replaced with placeholders before sending.
+- **Analysis levels:** "Quick" reads only the overall score and trend (usually a few cents), "Standard" adds emotions and intentions for each of their messages, "Full" also grades your replies; you can also analyze just the last 7 or 30 days.
+- **Spending under control:** after importing you see the estimated cost and start manually; set a per-run limit that pauses the analysis; spent / estimated and time left are shown while it runs.
+- **Correct a judgment:** if a line was read wrong, write what actually happened and the model re-reads that line with your note; later re-runs keep it.
+- **Search and filters:** search the chat by keyword, or jump between "my low-scoring replies", "their negative emotions" and more.
+- **English or Chinese interface:** switch with the **EN / 中** button at the top right (or in Chat Settings); it applies instantly and is remembered. The first visit follows your browser's language.
 
-## 本地运行
+In English mode everything is in English, including what the model writes: its reasoning, overall reading and weekly summaries. Reply suggestions are always written in the same language as your original message, so English chats get English rewrites. The sample chat is in English too. Results already analyzed keep the language they were written in; after switching, the status bar offers to re-run them in the new language.
 
-需要 Node.js 22.12+。下载源码并解压，进入项目目录：
+## Under the hood
+
+Not a prompt wrapper. Each question gets a structured answer (a written reason, then a probability distribution) that a rules layer turns into labels and scores. Requests go out in parallel batches with configurable concurrency and per-minute limits; malformed replies are retried, or split and asked again; prompts are laid out so providers can reuse their prefix cache. Plus: three kinds of model service (DeepSeek, any OpenAI-compatible API, Jev), a local reply cache, cost estimates and spending limits, privacy masking before anything is sent, 93 unit tests and 13 browser tests. Details below and in `server/llm.ts`.
+
+## Model
+
+This version calls an OpenAI-compatible Chat Completions API (DeepSeek by default). `server/llm.ts` asks the model to write a reason and then a probability distribution for each question, and converts that into the same choices, scores and confidences the original used, so the rules layer is largely unchanged. General chat models are not calibrated the way Jev is, so results may be less precise than the original.
+
+- [Get a DeepSeek API key](https://platform.deepseek.com/api_keys)
+- OpenAI or other compatible services work too: change the address and model in the settings page.
+
+**You can still use the original Jev model:** in the settings page, switch to **Jev (original model)**, pick a platform ([OpenRouter](https://openrouter.ai/settings/keys), Vercel AI Gateway or TypeSafe) and paste that platform's key. Jev returns calibrated probabilities but no written reasons. Choose **Jev only** (no reply suggestions) or **Jev + DeepSeek / OpenAI** (Jev analyzes, the chat model writes reply suggestions). Jev reads at most 500 messages / 12,000 characters per request; longer chats are sent in batches automatically, and the status bar shows which messages are being analyzed. Each service keeps its own key, so you can switch back and forth.
+
+## Run locally
+
+1. Install [Node.js](https://nodejs.org/) 22.12 or newer.
+2. [Download the ZIP](https://github.com/Reverie0123/crush-monitor-universal/archive/refs/heads/main.zip) and unzip it.
+3. Start it. The first run (and the first run after an update) installs what it needs, then opens the page in your browser:
+   - **Windows:** double-click `启动.bat`.
+   - **Mac:** double-click `启动.command`. If macOS says the developer can't be verified, right-click it and choose **Open**.
+   - **Linux:** run `./start.sh` in the project folder.
+4. Click the settings icon at the bottom left, paste your API key under **Model & API** ([get a DeepSeek key](https://platform.deepseek.com/api_keys)), then **Save & test connection**.
+
+Prefer the terminal? In the project folder:
 
 ```sh
 npm ci
@@ -53,86 +78,70 @@ npm run build
 npm start
 ```
 
-打开 [http://127.0.0.1:3178/](http://127.0.0.1:3178/)，点左下角的设置，在「模型与接口」里粘贴 API Key，点「保存并测试连接」。使用时保持终端运行；下次只需执行 `npm start`。
+Then open [http://127.0.0.1:3178/](http://127.0.0.1:3178/). Leave the terminal running.
 
-也可以用启动脚本，第一次运行和更新版本后会自动安装依赖，然后打开网页：
+## Usage
 
-- **Windows**：双击项目里的 `启动.bat`。
-- **Mac**：双击 `启动.command`。第一次如果提示「无法验证开发者」，右键点它选「打开」即可。
-- **Linux**：在项目目录运行 `./start.sh`。
+1. Paste a conversation, or click **Import file** to pick a `.txt` export. Export-tool summary headers are skipped automatically.
+2. Select your own name, check the estimated cost at the bottom, and click **Start Analysis**. Relationship type and background are in **Chat Settings**.
+3. Click a label for details and the model's reasons. The three buttons at the top right are trend, key moments and report export.
+4. Import more of the same conversation later: overlaps are merged and only new messages are analyzed.
 
-## 怎么用
+### Supported text formats
 
-1. 复制聊天记录，或打开导出的文本文件，将内容粘贴到网页输入框。
-2. 选择哪个昵称是自己，点「导入聊天」；底部会显示待分析条数和预计花费，确认后点「开始分析」。关系和关系背景可在设置中调整。
-3. 查看情绪、意图和回复评级，点击标签展开详情和判断依据。
-4. 右上角三个按钮分别是关系走势、关键时刻和导出报告。
-5. 有新聊天时继续粘贴，结果会随上下文更新。
-
-### 支持的聊天格式
-
-| 来源                | 粘贴方式                                                                                               |
-| ------------------- | ------------------------------------------------------------------------------------------------------ |
-| 微信                | 电脑版多选复制的“昵称 → 时间 → 正文”三行格式；或导出工具生成的“昵称 时间”+正文格式                     |
-| QQ                  | `昵称: 09-17 19:26:53`，下一行是正文；也支持带年份的日期                                               |
-| WhatsApp            | [导出聊天](https://faq.whatsapp.com/1180414079177245/)后，打开 `.txt` 并复制内容；支持下方两种常见格式 |
-| iMessage / 其他软件 | 将文字整理成 `昵称: 内容`，一条消息一个开头；支持英文和带空格的昵称                                    |
+| Source                | What to paste                                                                                                  |
+| --------------------- | -------------------------------------------------------------------------------------------------------------- |
+| WeChat                | Desktop multi-message copy (name, date/time, body on separate lines), or export-tool "name time" + body format |
+| QQ                    | `Name: 09-17 19:26:53`, followed by the body on the next line; dates with a year also work                     |
+| WhatsApp              | [Export a chat](https://faq.whatsapp.com/1180414079177245/), open the `.txt` file and copy its contents        |
+| iMessage / other apps | Format each message as `Name: body`                                                                            |
 
 ```text
 [9/17/26, 7:26:53 PM] Alex: Dinner tonight?
-[9/17/26, 7:27:00 PM] Me: Sounds good
-```
-
-```text
-17/09/2026, 19:26 - Alex: Dinner tonight?
 17/09/2026, 19:27 - Me: Sounds good
 ```
 
-iMessage 等软件复制后若只有正文，没有发送人，请先补上 `Alex:` / `Me:`，程序不会猜谁说了哪句话。WhatsApp 不同语言、版本的导出格式可能不同；以上格式有自动化测试覆盖，不代表所有客户端都已实测。
+If a copied iMessage (or other) chat has only the text with no sender, add `Alex:` / `Me:` first; the app doesn't guess who said what.
 
-只支持两人文字对话，不解析图片、语音、ZIP、HTML 或聊天数据库，也不后台监听。`[图片]`、`[表情]`、`[语音消息]` 等占位会作为语境发给模型，但不单独分析。「撤回了一条消息」「拍了拍」会像微信一样居中显示为系统提示；导出工具常把它们记在错误的人名下，程序会按提示文字本身判断是谁撤回的。
+Only two-person text conversations are supported—not images, audio, ZIP/HTML exports or chat databases. Placeholders such as `[Image]` or `<Media omitted>` are sent as context but not scored. WeChat recalls and nudges ("pats") are shown centered as system notices.
 
-## 说明
+## Notes
 
-- 好感度由主动延续、回应投入、关心体贴、自我开放、亲密表达、实际行动六项加权得出，点击顶部可看细项。明确且仍有效的拒绝会限制总分；分数不是对方喜欢你的概率。
-- 用 DeepSeek / OpenAI 时，每个模型请求最多 2,000 条、60,000 字；整体分析读取最近约 1,950 条，逐句分析参考前 150 条和后 20 条。用 Jev 时沿用原版的 500 条 / 12,000 字，逐句分析参考前 80 条和后 20 条。整体分析读不完整段聊天时，开始前和分析中都会提示。单条超长消息会保存并提示拆分。
-- 长聊天自动分批并行分析：DeepSeek / OpenAI 同时 9 路，实测每秒约 6 条；Jev 同时 2 路，会慢一些。同一批问题先发一个请求、再并行发其余的，让后续请求命中服务商的前缀缓存，省钱。追加时只分析新增内容和最近的对方消息。
-- 模型回复会缓存在项目的 `.cache/` 目录，同样的内容再分析时不重复花钱；设置里可以清除缓存或关闭缓存。缓存里有聊天内容，不要上传。
-- 聊天和分析保存在当前浏览器的本机数据库，刷新后恢复；设置中的“清空聊天，重新开始”会删除这些记录。
-- 分析所需原文（打码后）会发送至你配置的模型服务，模型用量由自己的账号承担；本机保存不等于离线分析。
-- 导入后不会自动分析：底部会先显示「待分析多少条、预计花费多少」，点「开始分析」才会调用模型。预估按实际要发出的请求逐个计算，默认单价是 DeepSeek V4 Flash 低谷价（高峰时段约翻倍）。点「已花费」可以看明细，并输入实际账单金额一键校准，之后的预估和统计都按校准后的比例计算。DeepSeek / OpenAI 和 Jev 各有一套单价和校准；Jev 的预计花费只作参考。金额默认按人民币显示，在「模型与接口」的单价处可以切换成美元（已填的单价和上限按 1 美元 = 7.2 元换算）。实际费用以服务商账单为准。
-- 切换模型后，已经分析过的消息保留原来的结果，之后的新消息和整体判断用新模型。分析进行中不能保存模型设置。
-- 首次使用会显示免责声明与风险提示，确认后才能分析；之后可在设置里随时查看。
-- 不要把 `.env`、`.cache/` 或私人聊天提交到仓库。
+- The affection score combines six weighted dimensions. An explicit refusal that still applies limits the score. **It is not the probability that someone likes you.**
+- With DeepSeek / OpenAI, each model request holds up to 2,000 messages / 60,000 characters and 9 requests run at once. The overview reads the most recent ~1,950 messages; per-line analysis sees the previous 150 and next 20. With Jev, the original limits apply: 500 messages / 12,000 characters, previous 80 messages, 2 requests at once. The page says so when the overview can't read the whole chat. Total history is limited only by browser storage.
+- Costs are shown in US dollars when you first open the English interface (yuan in Chinese); switch under **Model & API → Prices**, and prices and the limit you've entered are converted at 1 USD = 7.2 CNY. The default prices are DeepSeek's. After a few runs you can type in your actual bill to calibrate the estimates. Your provider's bill is what counts.
+- Jev writes no reasons; reply suggestions need **Jev + DeepSeek / OpenAI** mode. DeepSeek / OpenAI and Jev each keep their own prices and bill calibration; Jev estimates are approximate.
+- After switching models, lines already analyzed keep their results; new lines and the overview use the new model. Model settings can't be saved while an analysis is running.
+- Model replies are cached in `.cache/` so re-analyzing the same content is free; you can clear or disable this in settings. The cache contains chat text—never commit it.
+- Chats and results stay in this browser's local database. Text needed for analysis (after masking) is sent to your configured model service, billed to your account.
+- Never commit `.env`, `.cache/` or private conversations.
 
-## 更新记录
+## Changelog
 
-各版本的更新内容见 [CHANGELOG.md](CHANGELOG.md)。当前版本 v2.6.0：可以自定义同时请求数和每分钟请求上限，排队不再误报超时。
+See [CHANGELOG.md](CHANGELOG.md) (in Chinese; releases from v2.4.0 end with an English summary). Current version v2.6.0: set how many requests run at once and a per-minute limit; waiting in line no longer times out.
 
-## 和原版的主要差异
+## Development
 
-1. 模型接口默认从 TypeSafe Jev 换成 OpenAI 兼容接口（默认 DeepSeek），新增 `server/llm.ts` 适配层；原版的 Jev 仍可在设置里选用。
-2. 问题按小批并行请求；返回格式异常时自动重试、拆分重问，个别问题失败只标为“未完成”，可单独重试。
-3. 重写了给模型的阅读指引：先通读整段、结合上下文、网聊信号、回复节奏、引用关系和用户填写的关系背景，并要求打分有区分度。
-4. 用 DeepSeek / OpenAI 时，单次上限从 500 条 / 12,000 字提到 2,000 条 / 60,000 字，并发从 2 路提到 9 路；用 Jev 时保持原版的上限和 2 路并发，超出部分自动分批。
-5. 新增：判断依据展示、关系走势、关键时刻、回复建议、报告导出、花费统计、隐私打码、网页内设置、结果缓存、Windows / Mac 启动脚本。
-
-## 开发
-
-React + TypeScript + Vite + Express，通过 OpenAI 兼容的 Chat Completions 接口或 Jev 的原生接口调用模型。
+React + TypeScript + Vite + Express, calling models through an OpenAI-compatible Chat Completions API or Jev's native API.
 
 ```sh
-npm run dev        # 开发模式：http://127.0.0.1:5178/
-npm test           # 单元测试，不调用模型
-npm run test:e2e   # 界面测试：用 Edge 打开真实页面，DeepSeek 和 Jev 都换成本地假服务，不花钱
-npm run check:live # 真实模型调用检查，用 .env 里选的模型，使用自己的 API 额度
-npm run build:demo # 打包在线演示（静态网页，推送到 main 后自动部署到 GitHub Pages）
-npx tsx scripts/make-demo.ts http://127.0.0.1:3178  # 用真实模型重新生成演示里的示例分析，花几毛钱
-npm run release    # 发布 package.json 里的版本：检查、打标签、推送、建 GitHub Release（CHANGELOG 里要有对应一节）
+npm run dev        # http://127.0.0.1:5178/
+npm test           # local tests; no model calls
+npm run test:e2e   # UI tests in Edge with local stand-ins for DeepSeek and Jev; free
+npm run check:live # real model check with the model chosen in .env; uses your API credits
+npm run build:demo # the online demo: a static build, deployed to GitHub Pages on every push to main
+npx tsx scripts/make-demo.ts http://127.0.0.1:3178  # redo the demo's sample analysis with a real model (a few cents)
+npm run release    # tag and publish the version in package.json (needs a matching CHANGELOG section)
 ```
 
-界面文字集中在 `src/locales/zh.ts` 和 `src/locales/en.ts`。英文文件的类型由中文文件推导，漏翻或多出的 key 会直接编译失败。
+Interface text lives in `src/locales/zh.ts` and `src/locales/en.ts`. The English file's type is derived from the Chinese one, so a missing or extra key fails the build.
+
+## Credits
+
+This is an adaptation of [Crush Monitor](https://github.com/FerryCorleone/crush-monitor) by [**FerryCorleone**](https://github.com/FerryCorleone), published with his permission. The original uses TypeSafe's Jev model. This version keeps full support for Jev (via OpenRouter, Vercel or TypeSafe), adds DeepSeek / OpenAI-compatible APIs (DeepSeek is the default), and adds the features above. It keeps the original MIT license and copyright notice.
+
+If it made you laugh, or rethink a reply, a ⭐ helps other people find it.
 
 ## License
 
-[MIT](LICENSE)。原项目版权归原作者所有。本项目与微信、腾讯、TypeSafe、DeepSeek、OpenAI、OpenRouter 及 Vercel 无隶属关系。
+[MIT](LICENSE). Copyright of the original project belongs to its author. Not affiliated with WeChat, Tencent, TypeSafe, DeepSeek, OpenAI, OpenRouter, Vercel or any messaging platform mentioned here.
