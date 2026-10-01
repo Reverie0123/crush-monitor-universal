@@ -17,7 +17,7 @@ Paste a two-person text chat from WeChat, WhatsApp, QQ or iMessage, and every me
 - **Key moments:** invitations, care, confessions and refusals on one timeline
 - **Your replies, graded** from SSS to D, with two better ways to say them
 
-**[Open it in your browser](https://reverie0123.github.io/crush-monitor-universal/)**: it starts on a sample chat already analyzed by a real model, so you can click around. To analyze your own chats, paste your API key in the settings; it stays in your browser, and requests go straight from the page to the model service. Prefer to keep everything on your own machine? [Run it locally](#run-locally): same app, same code.
+**[Open it in your browser](https://reverie0123.github.io/crush-monitor-universal/)**: it starts on a sample chat already analyzed by a real model, so you can click around. To analyze your own chats, paste your API key in the settings; it stays in your browser, and requests go straight from the page to the model service. On a phone, open it in the browser and choose **Add to Home Screen**: it installs like an app. Prefer to keep everything on your own machine? [Run it locally](#run-locally): same app, same code.
 
 **Where your chat goes:** it's saved in your browser. Only the text needed for analysis is sent, to the model service you set up (DeepSeek, any OpenAI-compatible API, or the original Jev), after phone numbers, emails, ID and card numbers and words you choose are masked. A typical chat costs a few cents on your own key.
 
@@ -119,7 +119,7 @@ Only two-person text conversations are supported—not images, audio, ZIP/HTML e
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) (in Chinese; releases from v2.4.0 end with an English summary). Current version v2.7.0: the online version analyzes your own chats in the browser, nothing to install.
+See [CHANGELOG.md](CHANGELOG.md) (in Chinese; releases from v2.4.0 end with an English summary). Current version v2.8.0: the online version can be added to a phone's home screen.
 
 ## Development
 

@@ -2,6 +2,7 @@ import { useRef, type ReactNode } from "react";
 import { FileUp, Send } from "lucide-react";
 import { decodeText } from "./ui";
 import { useT } from "../i18n";
+import { WEB } from "../demo";
 
 /** Paste or import a chat. Parsing and merging happen in the parent. */
 export function Composer({
@@ -43,6 +44,7 @@ export function Composer({
           if ((e.metaKey || e.ctrlKey) && e.key === "Enter") onSubmit(input);
         }}
       />
+      {WEB && <p className="composer-hint">{t.composer.phoneHint}</p>}
       <div className="composer-bottom">
         {status}
         <div className="composer-actions">

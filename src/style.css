@@ -1701,3 +1701,17 @@ button.spend {
     padding-top: 24px;
   }
 }
+
+/* The online version on a phone: how to get a chat in. */
+.composer-hint {
+  display: none;
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #8a8f8c;
+}
+@media (max-width: 550px) {
+  .composer-hint {
+    display: block;
+  }
+}

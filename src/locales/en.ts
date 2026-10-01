@@ -347,6 +347,8 @@ export const en: Messages = {
       "Choose an exported .txt chat; you can import the same person's chat several times and overlaps merge automatically",
     importFile: "Import file",
     importChat: "Import chat",
+    phoneHint:
+      "Phone chat apps rarely let you copy a whole conversation. Copy or export it on a computer, send it to yourself, and paste it here.",
   },
   status: {
     limit: (messages, chars) =>

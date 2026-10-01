@@ -282,6 +282,8 @@ export const zh = {
       "选择导出的 .txt 聊天记录；同一个人的记录可以多次导入，重复部分会自动合并",
     importFile: "导入文件",
     importChat: "导入聊天",
+    phoneHint:
+      "手机上的微信没法整段复制聊天。可以在电脑上复制或导出后发给自己，再在这里粘贴。",
   },
   status: {
     limit: (messages: number, chars: number) =>

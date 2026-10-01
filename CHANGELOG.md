@@ -1,5 +1,16 @@
 # 更新记录
 
+## v2.8.0（2026-10-01）：手机上像 App 一样用
+
+### 新增
+
+- **添加到主屏幕**：在线版现在是 PWA。手机浏览器打开后选「添加到主屏幕」，就有图标、全屏打开，再次打开不用等加载。离线缓存只包含网页自己的文件，发给模型服务的请求从不缓存。
+- 手机屏幕上，粘贴框下面会提示怎么把聊天记录弄进来（手机微信没法整段复制，建议电脑上复制后发给自己）。
+
+### English summary
+
+- The online version is now a PWA: open it on a phone and choose Add to Home Screen to use it like an app. Only the site's own files are cached; requests to model services never are. On phone-sized screens, the paste box explains how to get a chat in.
+
 ## v2.7.0（2026-09-30）：在线版
 
 ### 新增

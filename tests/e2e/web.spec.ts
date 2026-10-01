@@ -71,4 +71,17 @@ test("在线版：设置存在浏览器里，分析直接从页面发给模型�
   await page.locator("summary", { hasText: "模型与接口" }).click();
   await expect(page.getByText(/在线版：Key 只保存在这个浏览器里/)).toBeVisible();
   await expect(page.getByLabel(/接口地址/)).toHaveValue(`${MOCK}/v1`);
+
+  // Installable on a phone: a manifest, and a service worker for this site only.
+  await expect(page.locator('link[rel="manifest"]')).toHaveAttribute(
+    "href",
+    /manifest\.webmanifest$/,
+  );
+  await expect
+    .poll(() => page.evaluate(() => navigator.serviceWorker.getRegistration().then((r) => !!r)), { timeout: 15_000 })
+    .toBe(true);
+  // On a phone-sized screen the paste box says how to get a chat in.
+  await page.keyboard.press("Escape");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator(".composer-hint")).toBeVisible();
 });
