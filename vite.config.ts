@@ -3,6 +3,22 @@ import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import { readFileSync } from "node:fs";
 const { version } = JSON.parse(readFileSync("package.json", "utf8"));
+// The online version is a static site with no response headers, so its
+// Content-Security-Policy travels in the page. Model services are chosen by
+// the visitor, so any https address may be called, plus local servers.
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "connect-src 'self' https: http://127.0.0.1:* http://localhost:*",
+  "worker-src 'self'",
+  "manifest-src 'self'",
+  "object-src 'none'",
+  "base-uri 'none'",
+  "form-action 'none'",
+].join("; ");
+
 export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
@@ -11,12 +27,20 @@ export default defineConfig(({ mode }) => ({
     // calls to model services are never cached.
     ...(mode === "web"
       ? [
+          {
+            name: "csp-meta",
+            transformIndexHtml: (html: string) =>
+              html.replace(
+                "<head>",
+                `<head>\n    <meta http-equiv="Content-Security-Policy" content="${CSP}" />`,
+              ),
+          },
           VitePWA({
             registerType: "autoUpdate",
             includeAssets: ["favicon.svg", "icons/*.png"],
             manifest: {
-              name: "Crush 好感监控器",
-              short_name: "好感监控器",
+              name: "Crush Monitor · 好感监控器",
+              short_name: "Crush Monitor",
               description:
                 "Paste a chat with your crush and see the signals you missed.",
               lang: "zh-CN",

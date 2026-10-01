@@ -52,7 +52,7 @@ export async function suggest(
     throw new LLMError("target is not a self message", 400);
   // Only the conversation up to the reply: the rewrite must not know what came next.
   const visible = input.messages.slice(0, index + 1);
-  const timing = timings(visible);
+  const timing = timings(visible, input.language ?? "zh");
   const history = visible.map((m, i) => ({
     sender: m.sender,
     text: splitQuote(m.text).text,

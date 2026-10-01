@@ -11,6 +11,11 @@ test("在线版：设置存在浏览器里，分析直接从页面发给模型�
 }) => {
   const model: string[] = [];
   const api: string[] = [];
+  // The page's Content-Security-Policy must not block anything the app needs.
+  const blocked: string[] = [];
+  page.on("console", (m) => {
+    if (m.type() === "error") blocked.push(m.text());
+  });
   page.on("request", (r) => {
     if (r.url().startsWith(MOCK)) model.push(r.url());
     if (r.url().includes("/api/")) api.push(r.url());
@@ -84,4 +89,6 @@ test("在线版：设置存在浏览器里，分析直接从页面发给模型�
   await page.keyboard.press("Escape");
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.locator(".composer-hint")).toBeVisible();
+  await expect(page.locator('meta[http-equiv="Content-Security-Policy"]')).toHaveCount(1);
+  expect(blocked).toEqual([]);
 });

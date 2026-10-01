@@ -313,3 +313,40 @@ test.describe("Other browser languages", () => {
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
   });
 });
+
+test("聊天列表：新聊天会把当前聊天存起来，能打开、导出 JSON 再导入", async ({ page }) => {
+  await acceptDisclaimer(page);
+  await importChat(page);
+  await expect(page.locator(".bubble").first()).toHaveText("今天加班到九点，累死了");
+  // 新聊天 puts the chat aside instead of deleting it.
+  await page.locator(".header-tools").getByRole("button", { name: "新聊天" }).click();
+  await expect(page.locator(".bubble")).toHaveCount(0);
+  await page.getByRole("button", { name: "聊天列表" }).click();
+  const list = page.getByRole("dialog", { name: "聊天列表" });
+  await expect(list.locator(".library-list li")).toHaveCount(1);
+  await expect(list.locator(".library-list li").first()).toContainText("小雨");
+  // Export it as JSON.
+  const download = page.waitForEvent("download");
+  await list.getByRole("button", { name: "导出", exact: true }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toMatch(/^好感监控器-聊天-小雨-.*\.json$/);
+  const path = await file.path();
+  // Open it again: the messages are back and the list is empty.
+  await list.getByRole("button", { name: "打开" }).click();
+  await expect(page.locator(".bubble").first()).toHaveText("今天加班到九点，累死了");
+  await page.getByRole("button", { name: "聊天列表" }).click();
+  await expect(list.locator(".library-list li")).toHaveCount(0);
+  // Importing the JSON puts the current chat aside and shows the imported one.
+  await list.getByLabel("导入 JSON 文件").setInputFiles(path!);
+  await expect(list).toBeHidden();
+  await expect(page.locator(".bubble").first()).toHaveText("今天加班到九点，累死了");
+  await page.getByRole("button", { name: "聊天列表" }).click();
+  await expect(list.locator(".library-list li")).toHaveCount(1);
+  // A chat that is not this app's export is refused.
+  await list.getByLabel("导入 JSON 文件").setInputFiles({
+    name: "x.json",
+    mimeType: "application/json",
+    buffer: Buffer.from('{"hello":1}'),
+  });
+  await expect(list.getByText("不是好感监控器导出的聊天")).toBeVisible();
+});

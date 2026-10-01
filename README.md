@@ -33,6 +33,7 @@ It's a second opinion, not mind reading. AI doesn't know your relationship or wh
 - **Key moments:** invitations, care, confessions, refusals and similar events in one timeline; click to jump to the message.
 - **Reply suggestions:** ask for two better ways to phrase any of your own replies.
 - **Report export:** download a one-page HTML report.
+- **Chat list and backups:** starting a new chat keeps the current one in a list; any chat exports to JSON (text and analysis) and imports back later or on another computer.
 - **Timing and quotes:** reply gaps, late-night chats and WeChat quoted replies are understood; images, stickers, recalls and pats are shown as context only.
 - **Ten relationship types:** from "just met" to "cold war" and "exes", each with its own reading guidance.
 - **Two model choices:** the original Jev (via OpenRouter, Vercel or TypeSafe), or DeepSeek / OpenAI (the default); keys and prices are kept separately for each.
@@ -119,7 +120,7 @@ Only two-person text conversations are supported—not images, audio, ZIP/HTML e
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) (in Chinese; releases from v2.4.0 end with an English summary). Current version v2.8.1: WhatsApp and English timestamps are read as dates.
+See [CHANGELOG.md](CHANGELOG.md) (in Chinese; releases from v2.4.0 end with an English summary). Current version v2.9.0: a chat list, JSON export and import.
 
 ## Development
 

@@ -8,7 +8,12 @@ import {
 } from "lucide-react";
 import {
   loadAvatars,
+  isSavedConversation,
   loadConversation,
+  readShelved,
+  removeShelved,
+  shelve,
+  takeOut,
   saveAvatars,
   saveConversation,
   type Avatars,
@@ -24,6 +29,7 @@ import { useSpend } from "./useSpend";
 import { Modal } from "./components/ui";
 import { DISCLAIMER_KEY, DisclaimerModal } from "./components/Disclaimer";
 import { ChatHeader } from "./components/ChatHeader";
+import { ConversationsModal } from "./components/ConversationsModal";
 import { MessageRow } from "./components/MessageRow";
 import { StatusBar } from "./components/StatusBar";
 import { Composer } from "./components/Composer";
@@ -61,6 +67,7 @@ import { DEMO, REPO_URL, WEB } from "./demo";
 const OVERVIEW_KINDS = ["overview", "action", "performance"];
 // Views opened by name; any other `detail` value is a message id.
 const VIEWS = [
+  "library",
   ...OVERVIEW_KINDS,
   "trend",
   "moments",
@@ -192,15 +199,7 @@ export default function App() {
           ...stored,
           messages: stored.messages.map(withKind),
         };
-        if (saved?.schema === 1) {
-          setMessages(saved.messages);
-          setSelf(saved.self);
-          setOther(saved.other);
-          setRelation(saved.relation);
-          setNote(saved.note ?? "");
-          setNoteDraft(saved.note ?? "");
-          a.restore(saved);
-        }
+        if (saved?.schema === 1) applySaved(saved);
         setReady(true);
       })
       .catch(() => {
@@ -213,6 +212,16 @@ export default function App() {
       live = false;
     };
   }, []);
+
+  function applySaved(saved: SavedConversation) {
+    setMessages(saved.messages);
+    setSelf(saved.self);
+    setOther(saved.other);
+    setRelation(saved.relation);
+    setNote(saved.note ?? "");
+    setNoteDraft(saved.note ?? "");
+    a.restore(saved);
+  }
 
   const pendingSave = useRef<SavedConversation | null>(null),
     saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
@@ -412,6 +421,50 @@ export default function App() {
     setImporting(false);
     add(toMessages(parsed, role));
   }
+  /** Puts the chat on screen on the shelf, if there is one. */
+  async function putAside() {
+    const snapshot = pendingSave.current;
+    if (!snapshot?.messages.length) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = null;
+    try {
+      await shelve(snapshot);
+    } catch {
+      setStorageError((t) => t.app.storageSaveFailed);
+      throw new Error("shelve failed");
+    }
+  }
+  /** 新聊天: the current chat is kept in the list, nothing is lost. */
+  async function startNew() {
+    await putAside();
+    clear();
+  }
+  function open(saved: SavedConversation) {
+    clear();
+    applySaved({ ...saved, messages: saved.messages.map(withKind) });
+  }
+  async function openShelved(id: string) {
+    await putAside();
+    const saved = await takeOut(id);
+    if (saved) open(saved);
+  }
+  async function importSaved(file: File) {
+    const parsed: unknown = JSON.parse(await file.text());
+    if (!isSavedConversation(parsed)) throw new Error("not a saved chat");
+    await putAside();
+    open(parsed);
+  }
+  function downloadSaved(saved: SavedConversation) {
+    const blob = new Blob([JSON.stringify(saved)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${t.library.file}-${saved.other.replace(/[\\/:*?"<>|]/g, "")}-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
   function clear() {
     a.reset();
     // The local reply cache holds this chat's text; clearing the chat clears it too.
@@ -563,7 +616,8 @@ export default function App() {
                   }),
                   other,
                 ),
-              clear: () => setDetail("clear"),
+              library: () => setDetail("library"),
+              newChat: () => void startNew(),
               settings: () => setSettings(true),
             }}
           />
@@ -796,6 +850,27 @@ export default function App() {
       )}
       {detail === "spend" && (
         <SpendModal usage={a.usage} spend={spend} close={closeDetail} />
+      )}
+      {detail === "library" && (
+        <ConversationsModal
+          current={
+            messages.length ? { other, count: messages.length } : null
+          }
+          on={{
+            open: openShelved,
+            remove: removeShelved,
+            exportCurrent: () => {
+              if (pendingSave.current) downloadSaved(pendingSave.current);
+            },
+            exportEntry: async (id) => {
+              const saved = await readShelved(id);
+              if (saved) downloadSaved(saved);
+            },
+            importFile: importSaved,
+            newChat: startNew,
+          }}
+          close={closeDetail}
+        />
       )}
       {detail === "clear" && (
         <Modal title={t.app.clearTitle} close={closeDetail}>

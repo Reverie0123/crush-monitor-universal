@@ -1,5 +1,24 @@
 # 更新记录
 
+## v2.9.0（2026-10-02）：多段聊天、备份导入
+
+### 新增
+
+- **聊天列表**：顶栏多了一个「聊天列表」按钮。点「新聊天」时，当前聊天会自动存进列表，不再是直接删掉；列表里可以随时打开以前的聊天，一次只有一段在屏幕上。要彻底删除还是用设置里的「清空聊天」。
+- **导出 / 导入 JSON**：当前聊天和列表里的每一段都能导出成 JSON 文件，包含聊天原文和全部分析结果；换电脑或清理过浏览器后导入即可恢复。不是本应用导出的文件会被拒绝。
+- **英文模式下的时间描述**：发给模型的「周三晚上」「3分钟」这类时段和回复间隔，在英文界面下改为英文。
+
+### 改进
+
+- 在线版加上了内容安全策略（CSP）：页面只能加载自己的脚本和样式，连接只允许 https 地址和本机地址。
+- 安装到手机主屏幕后的名称改为「Crush Monitor」，中英文用户都能认。
+
+### English summary
+
+- A chat list: starting a new chat keeps the current one in the list instead of deleting it, and any chat can be reopened. Chats export to JSON (text plus all analysis) and import back, as a backup or to move between computers.
+- In the English interface, the timing hints sent to the model (time of day, reply gaps) are written in English.
+- The online version carries a Content-Security-Policy, and installs to a home screen as "Crush Monitor".
+
 ## v2.8.1（2026-10-02）：英文时间格式
 
 ### 修复

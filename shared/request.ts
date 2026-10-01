@@ -69,7 +69,7 @@ export function buildRequest(input: AnalysisRequest) {
         )
       : input.messages;
   const ids = new Map(input.messages.map((m, i) => [m.id, String(i)]));
-  const timing = timings(input.messages);
+  const timing = timings(input.messages, input.language ?? "zh");
   const compact = (m: AnalysisRequest["messages"][number]) => {
     const i = Number(ids.get(m.id));
     const { text, quote } = splitQuote(m.text);

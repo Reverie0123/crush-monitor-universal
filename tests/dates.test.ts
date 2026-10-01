@@ -57,3 +57,12 @@ test("with WhatsApp timestamps the trend is weekly and the 7-day scope really cu
   const t = timings(ms);
   assert.ok(t[1].when && t[1].replyTo, JSON.stringify(t[1]));
 });
+
+test("timing words follow the output language", () => {
+  const ms = whatsapp().slice(0, 3);
+  const zh = timings(ms);
+  const en = timings(ms, "en");
+  assert.match(zh[0].when!, /^周[日一二三四五六]/);
+  assert.match(en[0].when!, /^(Sun|Mon|Tue|Wed|Thu|Fri|Sat) (evening|afternoon|late night)/);
+  assert.match(en[1].replyTo!, /^(\d+ days?|\d+(\.\d+)? h|\d+ min|under a minute)$/);
+});

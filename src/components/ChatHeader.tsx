@@ -2,6 +2,7 @@ import {
   FileDown,
   Flag,
   Heart,
+  MessagesSquare,
   MoreHorizontal,
   Plus,
   Search,
@@ -30,7 +31,8 @@ export function ChatHeader({
     trend: () => void;
     moments: () => void;
     report: () => void;
-    clear: () => void;
+    library: () => void;
+    newChat: () => void;
     settings: () => void;
   };
 }) {
@@ -71,7 +73,8 @@ export function ChatHeader({
             [t.header.trend, TrendingUp, on.trend, !hasChat],
             [t.header.moments, Flag, on.moments, !hasChat],
             [t.header.report, FileDown, on.report, !hasOverview],
-            [t.header.newChat, Plus, on.clear, false],
+            [t.header.library, MessagesSquare, on.library, false],
+            [t.header.newChat, Plus, on.newChat, !hasChat],
           ] as const
         ).map(([label, Icon, onClick, disabled]) => (
           <button

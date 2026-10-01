@@ -82,34 +82,43 @@ export function timesOf(messages: Message[]): (Date | null)[] {
   return messages.map((m) => parseTime(m.timestamp, year, order));
 }
 
-export function formatGap(ms: number) {
+/** The language the timing words are written in: the one the model answers in. */
+export type TimingLang = "zh" | "en";
+
+export function formatGap(ms: number, lang: TimingLang = "zh") {
   const s = Math.round(ms / 1000);
-  if (s < 60) return "1分钟内";
+  const en = lang === "en";
+  if (s < 60) return en ? "under a minute" : "1分钟内";
   const min = Math.round(s / 60);
-  if (min < 60) return `${min}分钟`;
+  if (min < 60) return en ? `${min} min` : `${min}分钟`;
   const h = ms / 3600000;
-  if (h < 24) return `${Math.round(h * 10) / 10}小时`;
-  return `${Math.round(h / 24)}天`;
+  if (h < 24) {
+    const n = Math.round(h * 10) / 10;
+    return en ? `${n} h` : `${n}小时`;
+  }
+  const d = Math.round(h / 24);
+  return en ? `${d} day${d === 1 ? "" : "s"}` : `${d}天`;
 }
 
 const WEEK = "日一二三四五六";
-function describeTime(d: Date) {
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const PARTS_ZH = ["深夜", "早上", "上午", "中午", "下午", "晚上", "深夜"];
+const PARTS_EN = [
+  "late night",
+  "early morning",
+  "morning",
+  "midday",
+  "afternoon",
+  "evening",
+  "late night",
+];
+function describeTime(d: Date, lang: TimingLang = "zh") {
   const h = d.getHours();
-  const part =
-    h < 5
-      ? "深夜"
-      : h < 9
-        ? "早上"
-        : h < 12
-          ? "上午"
-          : h < 14
-            ? "中午"
-            : h < 18
-              ? "下午"
-              : h < 23
-                ? "晚上"
-                : "深夜";
-  return `周${WEEK[d.getDay()]}${part}`;
+  const i =
+    h < 5 ? 0 : h < 9 ? 1 : h < 12 ? 2 : h < 14 ? 3 : h < 18 ? 4 : h < 23 ? 5 : 6;
+  return lang === "en"
+    ? `${DAYS[d.getDay()]} ${PARTS_EN[i]}`
+    : `周${WEEK[d.getDay()]}${PARTS_ZH[i]}`;
 }
 
 export type Timing = { when?: string; gap?: string; replyTo?: string };
@@ -118,15 +127,18 @@ export type Timing = { when?: string; gap?: string; replyTo?: string };
  * For each message: the time of day, and the gap since the previous message.
  * When the sender changed, the gap is how long this person took to reply.
  */
-export function timings(messages: Message[]): Timing[] {
+export function timings(
+  messages: Message[],
+  lang: TimingLang = "zh",
+): Timing[] {
   const times = timesOf(messages);
   return messages.map((m, i) => {
     const t = times[i];
     if (!t) return {};
     const prev = i > 0 ? times[i - 1] : null;
-    const out: Timing = { when: describeTime(t) };
+    const out: Timing = { when: describeTime(t, lang) };
     if (prev && t >= prev) {
-      const gap = formatGap(t.getTime() - prev.getTime());
+      const gap = formatGap(t.getTime() - prev.getTime(), lang);
       if (messages[i - 1].sender !== m.sender) out.replyTo = gap;
       else out.gap = gap;
     }

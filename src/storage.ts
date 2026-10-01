@@ -107,3 +107,127 @@ export function saveConversation(value: SavedConversation | null) {
   queue = operation;
   return operation;
 }
+
+// ---------- Chats put aside ----------
+// The chat on screen is "current"; the others wait under conv:<id>, with a
+// small index under "library". Opening one makes it current and takes it
+// off the shelf, so a chat is never in two places.
+
+export type LibraryEntry = {
+  id: string;
+  other: string;
+  self: string;
+  count: number;
+  updatedAt: string;
+};
+
+/** A read-write transaction on the workspace, queued behind pending saves. */
+function write<T>(run: (store: IDBObjectStore) => Promise<T> | T) {
+  const operation = queue
+    .catch(() => {})
+    .then(async () => {
+      const database = await db();
+      const tx = database.transaction("workspace", "readwrite");
+      const store = tx.objectStore("workspace");
+      const result = await run(store);
+      await new Promise<void>((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () =>
+          reject(tx.error ?? new Error(messages().errors.saveInterrupted));
+      });
+      return result;
+    });
+  queue = operation.then(
+    () => {},
+    () => {},
+  );
+  return operation;
+}
+const request = <T,>(req: IDBRequest<T>) =>
+  new Promise<T>((resolve, reject) => {
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+
+export async function listLibrary(): Promise<LibraryEntry[]> {
+  const database = await db();
+  const list = await request(
+    database.transaction("workspace").objectStore("workspace").get("library"),
+  );
+  return Array.isArray(list) ? (list as LibraryEntry[]) : [];
+}
+
+/** Puts a chat on the shelf. Returns its id. */
+export function shelve(value: SavedConversation) {
+  const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  return write(async (store) => {
+    const list = ((await request(store.get("library"))) ?? []) as LibraryEntry[];
+    store.put(value, `conv:${id}`);
+    store.put(
+      [
+        {
+          id,
+          other: value.other,
+          self: value.self,
+          count: value.messages.length,
+          updatedAt: new Date().toISOString(),
+        },
+        ...list,
+      ],
+      "library",
+    );
+    return id;
+  });
+}
+
+/** Reads a shelved chat without taking it down. */
+export async function readShelved(id: string) {
+  const database = await db();
+  return request(
+    database.transaction("workspace").objectStore("workspace").get(`conv:${id}`),
+  ) as Promise<SavedConversation | undefined>;
+}
+
+/** Takes a chat off the shelf, to become the current one. */
+export function takeOut(id: string) {
+  return write(async (store) => {
+    const value = (await request(store.get(`conv:${id}`))) as
+      | SavedConversation
+      | undefined;
+    const list = ((await request(store.get("library"))) ?? []) as LibraryEntry[];
+    store.delete(`conv:${id}`);
+    store.put(
+      list.filter((e) => e.id !== id),
+      "library",
+    );
+    return value;
+  });
+}
+
+export function removeShelved(id: string) {
+  return write(async (store) => {
+    const list = ((await request(store.get("library"))) ?? []) as LibraryEntry[];
+    store.delete(`conv:${id}`);
+    store.put(
+      list.filter((e) => e.id !== id),
+      "library",
+    );
+  });
+}
+
+/** Whether a parsed JSON file is a chat this app exported. */
+export function isSavedConversation(v: unknown): v is SavedConversation {
+  const o = v as SavedConversation;
+  return (
+    !!o &&
+    typeof o === "object" &&
+    o.schema === 1 &&
+    Array.isArray(o.messages) &&
+    typeof o.self === "string" &&
+    typeof o.other === "string" &&
+    typeof o.relation === "string" &&
+    o.lines !== null &&
+    typeof o.lines === "object"
+  );
+}
