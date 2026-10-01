@@ -789,8 +789,11 @@ test("设了每分钟上限后，请求均匀错开发出；排队不算进单�
       ),
     );
     starts.sort((a, b) => a - b);
+    // Timers can fire a little late, which shortens the gap to the next one;
+    // the spacing shows in the whole run and in no two calls being bunched.
+    assert.ok(starts[3] - starts[0] >= 270, `spread ${starts[3] - starts[0]}`);
     for (let i = 1; i < starts.length; i++)
-      assert.ok(starts[i] - starts[i - 1] >= 90, `gap ${starts[i] - starts[i - 1]}`);
+      assert.ok(starts[i] - starts[i - 1] >= 60, `gap ${starts[i] - starts[i - 1]}`);
   } finally {
     delete process.env.LLM_RPM;
   }
