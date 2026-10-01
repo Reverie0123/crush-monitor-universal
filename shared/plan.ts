@@ -3,7 +3,7 @@
 import { incrementalJobs, overviewJob } from "./incremental";
 import { requestLimits } from "./limits";
 import { boundedContext, type MemoryEvent } from "./memory";
-import { parseTime, periods as splitPeriods } from "./context";
+import { timesOf, periods as splitPeriods } from "./context";
 import type {
   AnalysisRequest,
   LineResult,
@@ -67,11 +67,7 @@ export function scopeFilter(messages: Message[], scope: Scope) {
         : [];
   let from = 0;
   if (scope.days) {
-    const year = messages
-      .map((m) => parseTime(m.timestamp))
-      .find((d) => d)
-      ?.getFullYear();
-    const times = messages.map((m) => parseTime(m.timestamp, year)?.getTime());
+    const times = timesOf(messages).map((d) => d?.getTime());
     const last = Math.max(...times.filter((t): t is number => t !== undefined));
     if (Number.isFinite(last)) {
       const cutoff = last - scope.days * 86400000;

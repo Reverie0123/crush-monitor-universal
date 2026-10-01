@@ -3,8 +3,11 @@
 # sample and analyzes the visitor's own chats in the browser with their key.
 name: Web
 
+# It deploys only after the CI workflow (unit and UI tests) has passed on main.
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -19,6 +22,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

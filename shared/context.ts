@@ -1,10 +1,42 @@
 // Derived signals the model reads poorly from raw text: reply timing and quoted replies.
 import type { Message } from "./types";
 
+// "2026-09-17 19:26:53", "2026年9月17日 19:26", "2026/9/17, 7:26 PM"
 const full =
-  /^(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})日?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/;
+  /^(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})日?,?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*([AaPp])\.?[Mm]\.?)?$/;
+// "9-17 19:26": QQ exports without a year.
 const monthDay = /^(\d{1,2})[-/](\d{1,2})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/;
+// "9/17/26, 7:26:53 PM", "17/09/2026, 19:27", "17.09.26, 19:26": WhatsApp and
+// most English-language apps, with the day and month in whichever order the
+// phone's locale uses.
+const dayMonth =
+  /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4}),?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*([AaPp])\.?[Mm]\.?)?$/;
 const clock = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/;
+
+/** Day-first ("17/09/2026") or month-first ("9/17/26") slash dates. */
+export type DateOrder = "dmy" | "mdy";
+
+/**
+ * Which order a chat's slash dates use, decided once for the whole chat: a
+ * day over 12 settles it; failing that, two-digit years are how WhatsApp
+ * writes US (month-first) exports.
+ */
+export function dateOrder(
+  messages: { timestamp: string | null }[],
+): DateOrder {
+  let twoDigitYear = false;
+  for (const m of messages) {
+    const d = m.timestamp?.trim().match(dayMonth);
+    if (!d) continue;
+    if (+d[1] > 12) return "dmy";
+    if (+d[2] > 12) return "mdy";
+    if (d[3].length === 2) twoDigitYear = true;
+  }
+  return twoDigitYear ? "mdy" : "dmy";
+}
+
+const hour24 = (h: number, ampm?: string) =>
+  !ampm ? h : ampm.toLowerCase() === "p" ? (h % 12) + 12 : h % 12;
 
 /**
  * Parses the timestamp formats the chat parser keeps verbatim. Dates without a
@@ -13,16 +45,41 @@ const clock = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/;
 export function parseTime(
   ts: string | null,
   fallbackYear?: number,
+  order: DateOrder = "dmy",
 ): Date | null {
   if (!ts) return null;
   const s = ts.trim();
   let m = s.match(full);
-  if (m) return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] ?? 0));
+  if (m)
+    return new Date(
+      +m[1],
+      +m[2] - 1,
+      +m[3],
+      hour24(+m[4], m[7]),
+      +m[5],
+      +(m[6] ?? 0),
+    );
+  m = s.match(dayMonth);
+  if (m) {
+    const [day, month] = order === "mdy" ? [+m[2], +m[1]] : [+m[1], +m[2]];
+    const year = m[3].length === 2 ? 2000 + +m[3] : +m[3];
+    return new Date(year, month - 1, day, hour24(+m[4], m[7]), +m[5], +(m[6] ?? 0));
+  }
   m = s.match(monthDay);
   if (m && fallbackYear)
     return new Date(fallbackYear, +m[1] - 1, +m[2], +m[3], +m[4], +(m[5] ?? 0));
   if (clock.test(s)) return null;
   return null;
+}
+
+/** Every message's time, read with the chat's date order and year. */
+export function timesOf(messages: Message[]): (Date | null)[] {
+  const order = dateOrder(messages);
+  const year = messages
+    .map((m) => parseTime(m.timestamp, undefined, order))
+    .find((d) => d)
+    ?.getFullYear();
+  return messages.map((m) => parseTime(m.timestamp, year, order));
 }
 
 export function formatGap(ms: number) {
@@ -62,11 +119,7 @@ export type Timing = { when?: string; gap?: string; replyTo?: string };
  * When the sender changed, the gap is how long this person took to reply.
  */
 export function timings(messages: Message[]): Timing[] {
-  const year = messages
-    .map((m) => parseTime(m.timestamp))
-    .find((d) => d)
-    ?.getFullYear();
-  const times = messages.map((m) => parseTime(m.timestamp, year));
+  const times = timesOf(messages);
   return messages.map((m, i) => {
     const t = times[i];
     if (!t) return {};
@@ -105,11 +158,7 @@ export function findQuoted(messages: Message[], before: number, quote: string) {
 
 /** Splits messages into calendar weeks, or into even chunks when there are no timestamps. */
 export function periods(messages: Message[], maxPeriods = 12) {
-  const year = messages
-    .map((m) => parseTime(m.timestamp))
-    .find((d) => d)
-    ?.getFullYear();
-  const times = messages.map((m) => parseTime(m.timestamp, year));
+  const times = timesOf(messages);
   const dated = times.filter(Boolean).length >= messages.length * 0.8;
   const groups: { label: string; start: number; end: number }[] = [];
   if (dated) {

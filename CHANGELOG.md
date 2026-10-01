@@ -1,5 +1,21 @@
 # 更新记录
 
+## v2.8.1（2026-10-02）：英文时间格式
+
+### 修复
+
+- **WhatsApp 和英文导出的时间现在能读懂了**：`9/17/26, 7:26:53 PM`、`17/09/2026, 19:27`、`17.09.26, 19:26`、`2026/9/17, 7:26 pm` 这类格式以前只当作文字保留，没有换算成时间。后果是「只分析最近 7 / 30 天」会悄悄变成分析全部、走势图退化成按段显示、回复间隔和深夜聊天这些信号全部丢失。日/月的先后顺序按整段聊天一次判断：有超过 12 的那位就是日；都不超过 12 时，两位数年份按美式（月在前），四位数按日在前。
+- 合并聊天时判断新旧顺序也改用同一套时间解析。
+
+### 改进
+
+- GitHub Pages 的自动部署改为在 CI（单元测试和界面测试）通过之后才进行；测试没过就不会上线。
+
+### English summary
+
+- Fixed: WhatsApp and other English-style timestamps (`9/17/26, 7:26:53 PM`, `17/09/2026, 19:27`, `17.09.26, 19:26`) were kept as text but never read as dates, so the 7/30-day scope silently analyzed everything, the trend fell back to even chunks, and reply-gap and late-night signals were lost. Day/month order is decided once per chat.
+- The online version now deploys only after CI passes.
+
 ## v2.8.0（2026-10-01）：手机上像 App 一样用
 
 ### 新增

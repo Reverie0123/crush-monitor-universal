@@ -101,7 +101,7 @@ Then open [http://127.0.0.1:3178/](http://127.0.0.1:3178/). Leave the terminal r
 17/09/2026, 19:27 - Me: Sounds good
 ```
 
-If a copied iMessage (or other) chat has only the text with no sender, add `Alex:` / `Me:` first; the app doesn't guess who said what.
+Dates like `9/17/26` and `17/09/2026` are read in whichever order the chat uses, decided once for the whole chat. If a copied iMessage (or other) chat has only the text with no sender, add `Alex:` / `Me:` first; the app doesn't guess who said what.
 
 Only two-person text conversations are supported—not images, audio, ZIP/HTML exports or chat databases. Placeholders such as `[Image]` or `<Media omitted>` are sent as context but not scored. WeChat recalls and nudges ("pats") are shown centered as system notices.
 
@@ -119,7 +119,7 @@ Only two-person text conversations are supported—not images, audio, ZIP/HTML e
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) (in Chinese; releases from v2.4.0 end with an English summary). Current version v2.8.0: the online version can be added to a phone's home screen.
+See [CHANGELOG.md](CHANGELOG.md) (in Chinese; releases from v2.4.0 end with an English summary). Current version v2.8.1: WhatsApp and English timestamps are read as dates.
 
 ## Development
 

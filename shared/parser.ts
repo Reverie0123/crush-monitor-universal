@@ -1,5 +1,6 @@
 import { MAX_MESSAGES, MAX_TEXT_CHARS } from "./limits";
 import type { Message, Parsed } from "./types";
+import { dateOrder, parseTime } from "./context";
 const time =
   "(?:\\d{4}[-/]\\d{1,2}[-/]\\d{1,2}\\s+)?\\d{1,2}:\\d{2}(?::\\d{2})?";
 const header = new RegExp(`^(.{1,40}?)\\s+(${time})$`);
@@ -270,16 +271,9 @@ export function mergeMessages(
             incoming.slice(0, overlap).every((m, j) => equal(old[i + j], m)),
         ).length
       : 0;
+  const order = dateOrder([...old, ...incoming]);
   const stamp = (s: string | null) =>
-    s && /^\d{4}/.test(s)
-      ? Date.parse(
-          s
-            .replace("年", "-")
-            .replace("月", "-")
-            .replace("日", "")
-            .replace(" ", "T"),
-        )
-      : NaN;
+    parseTime(s, undefined, order)?.getTime() ?? NaN;
   const firstNew = incoming[overlap];
   const backwards =
     firstNew && stamp(firstNew.timestamp) < stamp(old.at(-1)!.timestamp);
